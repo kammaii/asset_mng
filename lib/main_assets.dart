@@ -15,6 +15,10 @@ class _MainAssetsState extends State<MainAssets> {
   List<Color> chartColors = [Color(0xff6E8DFA),Color(0xffBBFA56),Color(0xffFA6248),Color(0xffFACB48),Color(0xff61FAB7),Color(0xffFA7F9E),Color(0xff5CDDFA),Color(0xffFAE443),Color(0xff50FA68),Color(0xff8269FA)];
   List<String> testTitleList = ['삼성전자','NAVER','이노와이어리스','한국항공우주'];
   List<double> testValueList = [40, 30, 15, 15];
+  List<Color> gradientColors = [
+    const Color(0xff23b6e6),
+    const Color(0xff02d39a),
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -25,7 +29,46 @@ class _MainAssetsState extends State<MainAssets> {
             getCircleChart(testTitleList, testValueList),
           ],
         ),
+        Expanded(
+          child: getLineChart()
+        )
       ],
+    );
+  }
+
+  LineChart getLineChart() {
+    return LineChart(
+        LineChartData(
+            minX: 0,
+            maxX: 11,
+            minY: 0,
+            maxY: 15,
+            lineBarsData: [
+              LineChartBarData(
+                spots: [
+                  FlSpot(0, 3),
+                  FlSpot(2, 5),
+                  FlSpot(4, 9),
+                  FlSpot(6, 10),
+                  FlSpot(8, 5),
+                  FlSpot(10, 7)
+                ],
+                isCurved: true,
+                colors: gradientColors
+              ),
+              LineChartBarData(
+                spots: [
+                  FlSpot(0, 4),
+                  FlSpot(2, 2),
+                  FlSpot(4, 12),
+                  FlSpot(6, 14),
+                  FlSpot(8, 8),
+                  FlSpot(10, 6)
+                ],
+                isCurved: true,
+              )
+            ]
+        )
     );
   }
 
