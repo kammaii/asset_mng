@@ -23,12 +23,18 @@ class _MainAssetsState extends State<MainAssets> {
   @override
   Widget build(BuildContext context) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
+          child: Text('21년 7월', textScaleFactor: 1.5),
+        ),
         Row(
           children: [
             getCircleChart(testTitleList, testValueList),
           ],
         ),
+        SizedBox(height: 10.0),
         Expanded(
           child: getLineChart()
         )
@@ -72,54 +78,54 @@ class _MainAssetsState extends State<MainAssets> {
     );
   }
 
-  Card getCircleChart(List<String> titleList, List<double> valueList) {
-    return Card(
-      margin: EdgeInsets.all(10.0),
-      color: Colors.white,
-      elevation: 10,
-      child: Padding(
-        padding: const EdgeInsets.all(10.0),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: circleChartRadius*2.5,
-              height: circleChartRadius*2.5,
-              child: PieChart(
-                PieChartData(
-                    pieTouchData: PieTouchData(touchCallback: (pieTouchResponse) {
-                      setState(() {
-                        final desiredTouch = pieTouchResponse.touchInput is! PointerExitEvent &&
-                            pieTouchResponse.touchInput is! PointerUpEvent;
-                        if (desiredTouch && pieTouchResponse.touchedSection != null) {
-                          touchedIndex = pieTouchResponse.touchedSection!.touchedSectionIndex;
-                        } else {
-                          touchedIndex = -1;
-                        }
-                      });
-                    }),
-                    startDegreeOffset: 180,
-                    centerSpaceRadius: 0,
-                    sections: getSections(valueList)
-                ),
+  Widget getCircleChart(List<String> titleList, List<double> valueList) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        GestureDetector(
+          onTap: () {
+            print(touchedIndex);
+          },
+          child: Container(
+            width: circleChartRadius*2.5,
+            height: circleChartRadius*2.5,
+            child: PieChart(
+              PieChartData(
+                  pieTouchData: PieTouchData(touchCallback: (pieTouchResponse) {
+                    setState(() {
+                      final desiredTouch = pieTouchResponse.touchInput is! PointerExitEvent &&
+                          pieTouchResponse.touchInput is! PointerUpEvent;
+                      if (desiredTouch && pieTouchResponse.touchedSection != null) {
+                        touchedIndex = pieTouchResponse.touchedSection!.touchedSectionIndex;
+                      } else {
+                        touchedIndex = -1;
+                      }
+                    });
+                  }),
+                  startDegreeOffset: 180,
+                  centerSpaceRadius: 0,
+                  sections: getSections(valueList)
               ),
             ),
-            SizedBox(width: 20),
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.end,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: getIndicators(titleList),
-            )
-          ],
+          ),
         ),
-      ),
+        SizedBox(width: 20),
+        Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.end,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: getIndicators(titleList),
+        )
+      ],
     );
   }
 
   List<Row> getIndicators(List<String> titleList) {
     double circleSize = 15;
     return List.generate(titleList.length, (i) {
+      Color textColor;
+      touchedIndex == i ? textColor = Colors.red : textColor = Colors.black;
+
       return Row(
         children: [
           Container(
@@ -131,7 +137,8 @@ class _MainAssetsState extends State<MainAssets> {
             ),
           ),
           SizedBox(width: 5),
-          Text(titleList[i])
+          Text(titleList[i], style: TextStyle(color: textColor),
+          )
         ],
       );
     });

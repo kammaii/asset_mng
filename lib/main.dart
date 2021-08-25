@@ -1,4 +1,5 @@
 import 'package:asset_mng/main_assets.dart';
+import 'package:asset_mng/main_cash_flow.dart';
 import 'package:asset_mng/main_search.dart';
 import 'package:fancy_bottom_navigation/fancy_bottom_navigation.dart';
 import 'package:flutter/material.dart';
@@ -16,7 +17,7 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
 
-  Widget currentPage = MainAssets();
+  Widget currentPage = CashFlow();
 
   @override
   Widget build(BuildContext context) {
