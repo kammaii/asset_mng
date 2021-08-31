@@ -1,4 +1,6 @@
 
+import 'package:intl/intl.dart';
+
 class CashAsset {
 
   late String currency;
