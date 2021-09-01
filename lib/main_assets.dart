@@ -97,6 +97,7 @@ class _MainAssetsState extends State<MainAssets> {
                           pieTouchResponse.touchInput is! PointerUpEvent;
                       if (desiredTouch && pieTouchResponse.touchedSection != null) {
                         touchedIndex = pieTouchResponse.touchedSection!.touchedSectionIndex;
+                        print(touchedIndex);
                       } else {
                         touchedIndex = -1;
                       }

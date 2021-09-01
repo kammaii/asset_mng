@@ -1,6 +1,4 @@
 
-import 'package:intl/intl.dart';
-
 class CashAsset {
 
   late String currency;
@@ -8,7 +6,7 @@ class CashAsset {
   late double exchangeRate;
   late String assetType;
 
-  CashAsset(this.currency, this.amount, this.exchangeRate, this.assetType);
+  CashAsset([this.currency = '', this.amount = 0, this.exchangeRate = 0, this.assetType = '']);
 
   static const String CURRENCY = 'currency';
   static const String AMOUNT = 'amount';
