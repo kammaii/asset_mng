@@ -5,6 +5,7 @@ import 'package:asset_mng/cash_detail.dart';
 import 'package:asset_mng/invest_asset.dart';
 import 'package:asset_mng/invest_detail.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:intl/intl.dart';
 
@@ -156,7 +157,7 @@ class _CashFlowState extends State<CashFlow> {
             ),
             SizedBox(height: 50),
             Padding(
-              padding: const EdgeInsets.only(left: 100),
+              padding: const EdgeInsets.only(left: 50),
               child: Row(
                 children: [
                   Column(
@@ -233,7 +234,7 @@ class _CashFlowState extends State<CashFlow> {
             ),
             SizedBox(height: 50),
             Padding(
-              padding: const EdgeInsets.only(left: 100.0),
+              padding: const EdgeInsets.only(left: 50.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -289,8 +290,8 @@ class _CashFlowState extends State<CashFlow> {
             DataRow(
                 cells: [
                   DataCell(getDropDownButton(cashDetailList[index].currency, currencyDropdownList, (newValue) => cashDetailList[index].currency = newValue)),
-                  DataCell(getTextField(data: cashDetailList[index].item)),
-                  DataCell(getTextField(data: cashDetailList[index].amount)),
+                  DataCell(getTextField(cashDetailList[index].item, (newValue) => cashDetailList[index].item = newValue)),
+                  DataCell(getTextField(cashDetailList[index].amount, (newValue) => cashDetailList[index].amount = double.parse(newValue.replaceAll(',', '')))),
                   DataCell(IconButton(
                     onPressed: (){
                       setState(() {
@@ -310,8 +311,8 @@ class _CashFlowState extends State<CashFlow> {
         dataRow = List<DataRow>.generate(autoTransferList.length, (index) =>
             DataRow(
                 cells: [
-                  DataCell(getTextField(data: autoTransferList[index].item)),
-                  DataCell(getTextField(data: autoTransferList[index].amount)),
+                  DataCell(getTextField(autoTransferList[index].item, (newValue) => autoTransferList[index].item = newValue)),
+                  DataCell(getTextField(autoTransferList[index].amount, (newValue) => autoTransferList[index].amount = double.parse(newValue.replaceAll(',', '')))),
                   DataCell(IconButton(
                       onPressed: (){
                         setState(() {
@@ -355,9 +356,9 @@ class _CashFlowState extends State<CashFlow> {
                 cells: [
                   DataCell(getDropDownButton(investDetailList[index].currency, currencyDropdownList, (newValue) => investDetailList[index].currency = newValue)),
                   DataCell(getDropDownButton(investDetailList[index].buyAndSell, buyAndSellDropdownList, (newValue) => investDetailList[index].buyAndSell = newValue)),
-                  DataCell(getTextField(data: investDetailList[index].item)),
-                  DataCell(getTextField(data: investDetailList[index].price)),
-                  DataCell(getTextField(data: investDetailList[index].amount)),
+                  DataCell(getTextField(investDetailList[index].item, (newValue) => investDetailList[index].item = newValue)),
+                  DataCell(getTextField(investDetailList[index].price, (newValue) => investDetailList[index].price = double.parse(newValue.replaceAll(',', '')))),
+                  DataCell(getTextField(investDetailList[index].amount, (newValue) => investDetailList[index].amount = double.parse(newValue.replaceAll(',', '')))),
                   DataCell(IconButton(
                       onPressed: (){
                         setState(() {
@@ -379,21 +380,28 @@ class _CashFlowState extends State<CashFlow> {
     );
   }
 
-  TextField getTextField({dynamic data}) {
+  TextField getTextField(dynamic data, Function(String) function) {
+    FocusNode focusNode = FocusNode();
+    focusNode.addListener(() {
+      if(!focusNode.hasFocus) {
+        setState(() {});
+      }
+    });
     TextEditingController textFieldController = TextEditingController();
     textFieldController.addListener(() {
-      setState(() {
-        print(textFieldController.text);
-        print(textFieldController.text.runtimeType);
-        data = textFieldController.text;
-      });
+      function(textFieldController.text);
     });
-    if(data != null) {
-      //data.runtimeType is String ? textFieldController.text = data : textFieldController.text = f.format(data); //todo: 이거 왜 안되지?
-      data.runtimeType is String ? textFieldController.text = data : print('not String');
+    List<TextInputFormatter> inputFormatter = [];
+    if(data is String) {
+      textFieldController.text = data;
+    } else {
+      textFieldController.text = f.format(data);
+      inputFormatter.add(FilteringTextInputFormatter.digitsOnly);
     }
     return TextField(
+      focusNode: focusNode,
       controller: textFieldController,
+      inputFormatters: inputFormatter,
     );
   }
 
