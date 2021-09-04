@@ -89,7 +89,7 @@ class _CashFlowState extends State<CashFlow> {
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       child: Padding(
-        padding: const EdgeInsets.all(20.0),
+        padding: const EdgeInsets.fromLTRB(20.0, 20.0, 20.0, 200.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -207,7 +207,7 @@ class _CashFlowState extends State<CashFlow> {
                             icon: Icon(Icons.add_circle_outline_rounded, color: Theme.of(context).colorScheme.primary),
                             onPressed: () {
                               setState(() {
-                                //cashDetailList.add(CashDetail());
+                                autoTransferList.add(AutoTransfer());
                               });
                             },
                           )

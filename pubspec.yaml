@@ -32,6 +32,8 @@ dependencies:
   fancy_bottom_navigation: ^0.3.2
   fl_chart: ^0.36.3
   intl: ^0.16.1
+  firebase_core: ^1.5.0
+  cloud_firestore: ^2.5.1
 
 dev_dependencies:
   flutter_test:
