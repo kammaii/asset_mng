@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:asset_mng/auto_transfer.dart';
+import 'package:asset_mng/auto_withdrawal.dart';
 import 'package:asset_mng/cash_asset.dart';
 import 'package:asset_mng/cash_detail.dart';
 import 'package:asset_mng/invest_asset.dart';
@@ -19,7 +19,7 @@ class CashFlow extends StatefulWidget {
 class _CashFlowState extends State<CashFlow> {
   static const String CASH_ASSET = 'cashAsset';
   static const String CASH_DETAIL = 'cashDetail';
-  static const String AUTO_TRANSFER = 'autoTransfer';
+  static const String AUTO_WITHDRAWAL = 'autoWithdrawal';
   static const String INVEST_ASSET = 'investAsset';
   static const String INVEST_DETAIL = 'investDetail';
 
@@ -40,20 +40,19 @@ class _CashFlowState extends State<CashFlow> {
 
   List<CashAsset> cashAssetList = [];
   List<CashDetail> cashDetailList = [];
-  List<AutoTransfer> autoTransferList = [];
+  List<AutoWithdrawal> autoWithdrawalList = [];
   List<InvestAsset> investAssetList = [];
   List<InvestDetail> investDetailList = [];
 
+  List<String> cashJsonList = CashAsset().getSample();
+  List<String> investJsonList = InvestAsset().getSample();
+  List<String> autoWithdrawalJsonList = AutoWithdrawal().getSample();
 
+  List<double> exchangeRate = [1, 38.5, 1070.4];
 
-  List<String> cashJsonList = [ // todo: 샘플 현금 현황 (실재 DB에서 받는 데이터 형태)
-    jsonEncode(CashAsset('원', 1000000, 1, '생활비')),
-    jsonEncode(CashAsset('바트', 5555, 37, '생활비')),
-    jsonEncode(CashAsset('달러', 3000, 1065, '투자자산'))
-  ];
-
-  List<double> exchangeRate = [1, 38.5, 1070.4]; // todo: 현재 환율 웹스크래핑으로 가져오기
-
+  bool isAutoWithdrawalOpen = false;
+  late String autoWithdrawalText;
+  late double totalAutoWithdrawal;
 
   @override
   void initState() {
@@ -63,18 +62,30 @@ class _CashFlowState extends State<CashFlow> {
     goalTextFieldController.addListener(() {
       monthlyGoal = goalTextFieldController.text;
     });
+    setAssetData();
+  }
 
-    // json 리스트를 CashAsset 리스트로 변경
-    //todo: date를 선택했을 때 현금,투자 내역을 받아서 cashDetailList 에 넣기
+  // 현금, 투자 자산 데이터 세팅하기
+  void setAssetData() {
     for(String cashData in cashJsonList) {
       cashAssetList.add(CashAsset.fromJson(jsonDecode(cashData)));
     }
+    for(String autoTransferData in autoWithdrawalJsonList) {
+      autoWithdrawalList.add(AutoWithdrawal.fromJson(jsonDecode(autoTransferData)));
+    }
+    for(String investAsset in investJsonList) {
+      investAssetList.add(InvestAsset.fromJson(jsonDecode(investAsset)));
+    }
 
+
+    if(cashAssetList.isEmpty) {
+      cashAssetList.add(CashAsset());
+    }
     if(cashDetailList.isEmpty) {
       cashDetailList.add(CashDetail());
     }
-    if(autoTransferList.isEmpty) {
-      autoTransferList.add(AutoTransfer());
+    if(autoWithdrawalList.isEmpty) {
+      autoWithdrawalList.add(AutoWithdrawal());
     }
     if(investAssetList.isEmpty) {
       investAssetList.add(InvestAsset());
@@ -84,9 +95,19 @@ class _CashFlowState extends State<CashFlow> {
     }
   }
 
+  void setAutoTransferBtn() {
+    isAutoWithdrawalOpen ? autoWithdrawalText = '저장' : autoWithdrawalText = '열기';
+    totalAutoWithdrawal = 0;
+    for(AutoWithdrawal autoWithdrawal in autoWithdrawalList) {
+      totalAutoWithdrawal += autoWithdrawal.amount;
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
+    setAutoTransferBtn();
+
     return SingleChildScrollView(
       child: Padding(
         padding: const EdgeInsets.all(20.0),
@@ -159,6 +180,7 @@ class _CashFlowState extends State<CashFlow> {
             Padding(
               padding: const EdgeInsets.only(left: 50),
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -191,27 +213,38 @@ class _CashFlowState extends State<CashFlow> {
                           Text('자동이체', textScaleFactor: 2),
                           SizedBox(width: 20),
                           ElevatedButton(
-                            child: Text('저장'),
+                            child: Text(autoWithdrawalText),
                             onPressed: () {
-                              // todo: 자동이체 저장하기
+                              if(isAutoWithdrawalOpen) {
+                                //todo: 자동이체 저장하기
+                                isAutoWithdrawalOpen = false;
+                              } else {
+                                isAutoWithdrawalOpen = true;
+                              }
+                              setState(() {});
                             },
                           ),
+                          SizedBox(width: 20),
+                          Text('(' + f.format(totalAutoWithdrawal) + ' 원)'),
                         ],
                       ),
-                      Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          makeTable(AUTO_TRANSFER),
-                          SizedBox(height: 20),
-                          IconButton(
-                            icon: Icon(Icons.add_circle_outline_rounded, color: Theme.of(context).colorScheme.primary),
-                            onPressed: () {
-                              setState(() {
-                                //cashDetailList.add(CashDetail());
-                              });
-                            },
-                          )
-                        ],
+                      Visibility(
+                        visible: isAutoWithdrawalOpen,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            makeTable(AUTO_WITHDRAWAL),
+                            SizedBox(height: 20),
+                            IconButton(
+                              icon: Icon(Icons.add_circle_outline_rounded, color: Theme.of(context).colorScheme.primary),
+                              onPressed: () {
+                                setState(() {
+                                  autoWithdrawalList.add(AutoWithdrawal());
+                                });
+                              },
+                            )
+                          ],
+                        ),
                       )
                     ],
                   ),
@@ -305,18 +338,18 @@ class _CashFlowState extends State<CashFlow> {
         );
         break;
 
-      case AUTO_TRANSFER :
+      case AUTO_WITHDRAWAL :
         List<String> columns = ['내용','금액', ''];
         dataColumn = List<DataColumn>.generate(columns.length, (index) => DataColumn(label: Text(columns[index])));
-        dataRow = List<DataRow>.generate(autoTransferList.length, (index) =>
+        dataRow = List<DataRow>.generate(autoWithdrawalList.length, (index) =>
             DataRow(
                 cells: [
-                  DataCell(getTextField(autoTransferList[index].item, (newValue) => autoTransferList[index].item = newValue)),
-                  DataCell(getTextField(autoTransferList[index].amount, (newValue) => autoTransferList[index].amount = double.parse(newValue.replaceAll(',', '')))),
+                  DataCell(getTextField(autoWithdrawalList[index].item, (newValue) => autoWithdrawalList[index].item = newValue)),
+                  DataCell(getTextField(autoWithdrawalList[index].amount, (newValue) => autoWithdrawalList[index].amount = double.parse(newValue.replaceAll(',', '')))),
                   DataCell(IconButton(
                       onPressed: (){
                         setState(() {
-                          autoTransferList.removeAt(index);
+                          autoWithdrawalList.removeAt(index);
                         });
                       },
                       icon: Icon(Icons.cancel_outlined, color: Colors.red))

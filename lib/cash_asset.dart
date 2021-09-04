@@ -1,4 +1,6 @@
 
+import 'dart:convert';
+
 class CashAsset {
 
   late String currency;
@@ -25,4 +27,18 @@ class CashAsset {
     EXCHANGE_RATE : exchangeRate,
     ASSET_TYPE : assetType
   };
+
+  List<String> getSample() {
+    List<String> sample = [];
+    sample.add(jsonEncode(CashAsset('원', 300000000, 1, '생활비')));
+    sample.add(jsonEncode(CashAsset('바트', 50000, 37, '생활비')));
+    sample.add(jsonEncode(CashAsset('달러', 50000, 1065, '투자자산')));
+    return sample;
+  }
+
+  // todo: 현재 환율 웹스크래핑으로 가져오기
+  double getExchangeRate(String currency) {
+    double exchangeRate = 0;
+    return exchangeRate;
+  }
 }
