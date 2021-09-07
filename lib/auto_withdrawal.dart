@@ -17,12 +17,4 @@ class AutoWithdrawal {
     ITEM : item,
     AMOUNT : amount
   };
-
-  List<String> getSample() {
-    List<String> sample = [];
-    sample.add(jsonEncode(AutoWithdrawal('보험', 100000)));
-    sample.add(jsonEncode(AutoWithdrawal('휴대폰', 50000)));
-    sample.add(jsonEncode(AutoWithdrawal('계비', 10000)));
-    return sample;
-  }
 }

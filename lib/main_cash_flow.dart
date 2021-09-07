@@ -4,6 +4,7 @@ import 'package:asset_mng/cash_asset.dart';
 import 'package:asset_mng/cash_detail.dart';
 import 'package:asset_mng/invest_asset.dart';
 import 'package:asset_mng/invest_detail.dart';
+import 'package:asset_mng/sample_data.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
@@ -23,10 +24,7 @@ class _CashFlowState extends State<CashFlow> {
   static const String INVEST_ASSET = 'investAsset';
   static const String INVEST_DETAIL = 'investDetail';
 
-
-
-  late String date;
-  List<String> dateDropdownList = ['', '1', '2', '3', '4'];  // todo: 년/월 데이터 받기
+  String date = ' ';
   List<String> currencyDropdownList = ['원', '달러', '바트']; // todo: 입력받을 수 있는 기능 만들기
   List<String> buyAndSellDropdownList = ['매수', '매도'];
 
@@ -38,60 +36,43 @@ class _CashFlowState extends State<CashFlow> {
   static const double cardPadding = 30.0;
   static const double cardElevation = 5.0;
 
-  List<CashAsset> cashAssetList = [];
-  List<CashDetail> cashDetailList = [];
-  List<AutoWithdrawal> autoWithdrawalList = [];
-  List<InvestAsset> investAssetList = [];
-  List<InvestDetail> investDetailList = [];
-
-  List<String> cashJsonList = CashAsset().getSample();
-  List<String> investJsonList = InvestAsset().getSample();
-  List<String> autoWithdrawalJsonList = AutoWithdrawal().getSample();
-
-  List<double> exchangeRate = [1, 38.5, 1070.4];
+  late List<CashAsset> cashAssetList;
+  late List<CashDetail> cashDetailList;
+  late List<AutoWithdrawal> autoWithdrawalList;
+  late List<InvestAsset> investAssetList;
+  late List<InvestDetail> investDetailList;
 
   bool isAutoWithdrawalOpen = false;
   late String autoWithdrawalText;
   late double totalAutoWithdrawal;
 
-  @override
-  void initState() {
-    super.initState();
-    date = '';
-    monthlyGoal = ""; // todo: 저장된 값 가져오기
-    goalTextFieldController.addListener(() {
-      monthlyGoal = goalTextFieldController.text;
-    });
-    setAssetData();
-  }
+  bool isInputMode = true;
 
   // 현금, 투자 자산 데이터 세팅하기
   void setAssetData() {
-    for(String cashData in cashJsonList) {
-      cashAssetList.add(CashAsset.fromJson(jsonDecode(cashData)));
-    }
-    for(String autoTransferData in autoWithdrawalJsonList) {
-      autoWithdrawalList.add(AutoWithdrawal.fromJson(jsonDecode(autoTransferData)));
-    }
-    for(String investAsset in investJsonList) {
-      investAssetList.add(InvestAsset.fromJson(jsonDecode(investAsset)));
-    }
+    cashAssetList = [];
+    cashDetailList = [];
+    investAssetList = [];
+    investDetailList = [];
+    autoWithdrawalList = [];
 
-
-    if(cashAssetList.isEmpty) {
-      cashAssetList.add(CashAsset());
-    }
-    if(cashDetailList.isEmpty) {
+    if(isInputMode) {
+      for(String cashData in SampleData().getLastCashAssetJson()) {
+        cashAssetList.add(CashAsset.fromJson(jsonDecode(cashData)));
+      }
+      for(String investAsset in SampleData().getLastInvestAssetJson()) {
+        investAssetList.add(InvestAsset.fromJson(jsonDecode(investAsset)));
+      }
       cashDetailList.add(CashDetail());
-    }
-    if(autoWithdrawalList.isEmpty) {
-      autoWithdrawalList.add(AutoWithdrawal());
-    }
-    if(investAssetList.isEmpty) {
-      investAssetList.add(InvestAsset());
-    }
-    if(investDetailList.isEmpty) {
       investDetailList.add(InvestDetail());
+
+    } else {
+      //todo: 입력한 월의 자료 세팅하기
+      print('과거자료 보기 모드');
+    }
+
+    for(String autoTransferData in SampleData().getAutoWithdrawalJson()) {
+      autoWithdrawalList.add(AutoWithdrawal.fromJson(jsonDecode(autoTransferData)));
     }
   }
 
@@ -106,7 +87,18 @@ class _CashFlowState extends State<CashFlow> {
 
   @override
   Widget build(BuildContext context) {
+    if(isInputMode) {
+      monthlyGoal = f.format(SampleData().monthlyGoal/10000);
+      goalTextFieldController.addListener(() {
+        monthlyGoal = goalTextFieldController.text;
+      });
+
+    } else {
+    }
+
+    setAssetData();
     setAutoTransferBtn();
+
 
     return SingleChildScrollView(
       child: Padding(
@@ -128,13 +120,31 @@ class _CashFlowState extends State<CashFlow> {
               children: [
                 Text('년/월: '),
                 SizedBox(width: 20),
-                getDropDownButton(date, dateDropdownList, (newValue) => date = newValue)
+                getDropDownButton(date, SampleData().dateList, (newValue) => date = newValue),
+                SizedBox(width: 20),
+                Visibility(
+                  visible: isInputMode,
+                  child: Container(
+                    width: 70,
+                    height: 30,
+                    alignment: Alignment.center,
+                    child: TextField(
+                      decoration: new InputDecoration(
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.only(
+                            bottom: 15
+                        ),
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
               ],
             ),
             SizedBox(height: 20.0),
             Row(
               children: [
-                Text('목표: ${f.format(assetGoal)} 원 (월'),
+                Text('목표: ${f.format(SampleData().lastGoalAsset + SampleData().monthlyGoal)} 원 (월'),
                 SizedBox(width: 10),
                 Container(
                   width: 70,
@@ -142,7 +152,6 @@ class _CashFlowState extends State<CashFlow> {
                   alignment: Alignment.center,
                   child: TextField(
                     decoration: new InputDecoration(
-                      labelText: monthlyGoal,
                       border: OutlineInputBorder(),
                       contentPadding: EdgeInsets.only(
                         bottom: 15
@@ -310,7 +319,7 @@ class _CashFlowState extends State<CashFlow> {
               DataCell(Text(cashAssetList[index].currency)),
               DataCell(Text(f.format(cashAssetList[index].amount))),
               DataCell(Text(f.format(cashAssetList[index].amount))), // todo: 환율 및 현금변동내역 반영할 것
-              DataCell(Text(f.format(exchangeRate[index]))),
+              DataCell(Text(f.format(cashAssetList[index].exchangeRate))),
             ]
           )
         );

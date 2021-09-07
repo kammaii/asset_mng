@@ -63,14 +63,4 @@ class InvestAsset {
     ASSET_TYPE : assetType,
     TAG : tag
   };
-
-  List<String> getSample() {
-    List<String> sample = [];
-    sample.add(jsonEncode(InvestAsset('원', '삼성전자', 60000, 80000, 2000, '투자자산', '한국주식')));
-    sample.add(jsonEncode(InvestAsset('원', '중국ETF', 10000, 15000, 1000, '투자자산', '중국주식')));
-    sample.add(jsonEncode(InvestAsset('달러', 'NVDA', 60, 200, 100, '투자자산', '미국주식')));
-    sample.add(jsonEncode(InvestAsset('원', '변액', 10000000, 11000000, 1, '연금자산', '변액연금')));
-    sample.add(jsonEncode(InvestAsset('원', '연금펀드', 5000000, 6000000, 1, '연금자산', '연금펀드')));
-    return sample;
-  }
 }
