@@ -1,6 +1,4 @@
 import 'dart:convert';
-
-import 'auto_withdrawal.dart';
 import 'cash_asset.dart';
 import 'invest_asset.dart';
 
@@ -15,7 +13,7 @@ class SampleData {
     print('Sample data 초기화');
   }
 
-  List<String> dateList = [' ','21.07'];
+  List<String> dateList = ['','21.07'];
 
   double lastGoalAsset = 100000000;
   double monthlyGoal = 5000000;
@@ -39,19 +37,10 @@ class SampleData {
     return sample;
   }
 
-  List<String> getAutoWithdrawalJson() {
-    List<String> sample = [];
-    sample.add(jsonEncode(AutoWithdrawal('보험', 100000)));
-    sample.add(jsonEncode(AutoWithdrawal('휴대폰', 50000)));
-    sample.add(jsonEncode(AutoWithdrawal('계비', 10000)));
-    return sample;
-  }
-
   Map<String, double> thisExchangeRate = {
     '원' : 1,
     '달러' : 1100,
     '바트' : 38
   };
-
 }
 

@@ -7,17 +7,17 @@ class InvestAsset {
   late String item;
   late double buyPrice;
   late double currentPrice;
-  late double amount;
+  late double quantity;
   late String assetType;
   late String tag;
 
-  InvestAsset([this.currency='', this.item='', this.buyPrice=0, this.currentPrice=0, this.amount=0, this.assetType='', this.tag='']);
+  InvestAsset([this.currency='', this.item='', this.buyPrice=0, this.currentPrice=0, this.quantity=0, this.assetType='', this.tag='']);
 
   static const String CURRENCY = 'currency';
   static const String ITEM = 'item';
   static const String BUY_PRICE = 'buyPrice';
   static const String CURRENT_PRICE = 'currentPrice';
-  static const String AMOUNT = 'amount';
+  static const String QUANTITY = 'quantity';
   static const String ASSET_TYPE = 'assetType';
   static const String TAG = 'tag';
 
@@ -26,11 +26,11 @@ class InvestAsset {
   }
 
   double getGrossPurchase() { // 매입총액
-    return buyPrice * amount;
+    return buyPrice * quantity;
   }
 
   double getGrossValue() {  // 평가액
-    return currentPrice * amount;
+    return currentPrice * quantity;
   }
 
   double getTotalRevenue() {  // 수익
@@ -50,7 +50,7 @@ class InvestAsset {
     item = json[ITEM],
     buyPrice = json[BUY_PRICE],
     currentPrice = json[CURRENT_PRICE],
-    amount = json[AMOUNT],
+    quantity = json[QUANTITY],
     assetType = json[ASSET_TYPE],
     tag = json[TAG];
 
@@ -59,7 +59,7 @@ class InvestAsset {
     ITEM : item,
     BUY_PRICE : buyPrice,
     CURRENT_PRICE : currentPrice,
-    AMOUNT : amount,
+    QUANTITY : quantity,
     ASSET_TYPE : assetType,
     TAG : tag
   };
