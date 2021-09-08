@@ -8,7 +8,7 @@ class CashAsset {
   late double exchangeRate;
   late String assetType;
 
-  CashAsset([this.currency = '', this.amount = 0, this.exchangeRate = 0, this.assetType = '']);
+  CashAsset([this.currency = '원', this.amount = 0, this.exchangeRate = 0, this.assetType = '']);
 
   static const String CURRENCY = 'currency';
   static const String AMOUNT = 'amount';

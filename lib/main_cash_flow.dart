@@ -22,37 +22,72 @@ class _CashFlowState extends State<CashFlow> {
   List<String> currencyDropdownList = ['원', '달러', '바트']; // todo: 입력받을 수 있는 기능 만들기
 
   var f = NumberFormat('###,###,###,###.##');
-  TextEditingController goalTextFieldController = TextEditingController();
-  late String monthlyGoal;
+  late double monthlyGoal;
   static const double cardPadding = 30.0;
   static const double cardElevation = 5.0;
 
   late List<CashAsset> cashAssetList;
   late List<InvestAsset> investAssetList;
 
+  late double goalAsset;
+
   bool isInputMode = true;
+  bool isModeChanged = true;
+
+  late double totalCash;
+  late double totalInvest;
+
 
   // 현금, 투자 자산 데이터 세팅하기
   void setAssetData() {
     cashAssetList = [];
     investAssetList = [];
 
-    for(String cashData in SampleData().getLastCashAssetJson()) {
-      cashAssetList.add(CashAsset.fromJson(jsonDecode(cashData)));
+    if(isInputMode) {
+      //todo: 가장 최근의 데이터 가져오기
+      for (String cashData in SampleData().getLastCashAssetJson()) {
+        cashAssetList.add(CashAsset.fromJson(jsonDecode(cashData)));
+      }
+      for (String investAsset in SampleData().getLastInvestAssetJson()) {
+        investAssetList.add(InvestAsset.fromJson(jsonDecode(investAsset)));
+      }
+      goalAsset = SampleData().lastGoalAsset + SampleData().monthlyGoal;
+
+    } else {
+      //todo: 날짜에 맞는 데이터 가져오기
+      for (String cashData in SampleData().getLastCashAssetJson()) {
+        cashAssetList.add(CashAsset.fromJson(jsonDecode(cashData)));
+      }
+      for (String investAsset in SampleData().getLastInvestAssetJson()) {
+        investAssetList.add(InvestAsset.fromJson(jsonDecode(investAsset)));
+      }
+      goalAsset = SampleData().lastGoalAsset;
     }
-    for(String investAsset in SampleData().getLastInvestAssetJson()) {
-      investAssetList.add(InvestAsset.fromJson(jsonDecode(investAsset)));
+  }
+
+  // 현금, 투자 자산 총액 구하기
+  void getTotalAsset() {
+    totalCash = 0;
+    totalInvest = 0;
+    Map<String, double> exchangeRate = Map();
+    for(CashAsset cashAsset in cashAssetList) {
+      totalCash += cashAsset.amount * cashAsset.exchangeRate;
+      exchangeRate[cashAsset.currency] = cashAsset.exchangeRate;
+    }
+    for(InvestAsset investAsset in investAssetList) {
+      //totalInvest += (investAsset.getGrossValue() * exchangeRate[investAsset.currency]); //todo: 이거 왜 에러지?
     }
   }
 
 
   @override
   Widget build(BuildContext context) {
-    monthlyGoal = f.format(SampleData().monthlyGoal/10000);
-    goalTextFieldController.addListener(() {
-      monthlyGoal = goalTextFieldController.text;
-    });
-    setAssetData();
+    if(isModeChanged) {
+      monthlyGoal = SampleData().monthlyGoal/10000;
+      setAssetData();
+      isModeChanged = false;
+    }
+    getTotalAsset();
 
     return SingleChildScrollView(
       child: Padding(
@@ -64,7 +99,11 @@ class _CashFlowState extends State<CashFlow> {
               children: [
                 ElevatedButton(
                   onPressed: () {
-                    // todo: 새 데이터 입력하기
+                    setState(() {
+                      date = '';
+                      isInputMode = true;
+                      isModeChanged = true;
+                    });
                   },
                   child: Text('입력하기')),
               ],
@@ -74,55 +113,30 @@ class _CashFlowState extends State<CashFlow> {
               children: [
                 Text('년/월: '),
                 SizedBox(width: 20),
-                getDropDownButton(date, SampleData().dateList, (newValue) => date = newValue),
+                getDropDownButton(date, SampleData().dateList, (newValue) {
+                  date = newValue;
+                  isInputMode = false;
+                  isModeChanged = true;
+                }),
                 SizedBox(width: 20),
                 Visibility(
                   visible: isInputMode,
-                  child: Container(
-                    width: 70,
-                    height: 30,
-                    alignment: Alignment.center,
-                    child: TextField(
-                      decoration: new InputDecoration(
-                        border: OutlineInputBorder(),
-                        contentPadding: EdgeInsets.only(
-                            bottom: 15
-                        ),
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
+                  child: getTextField('', (newValue) => date = newValue),
                 ),
               ],
             ),
             SizedBox(height: 20.0),
             Row(
               children: [
-                Text('목표: ${f.format(SampleData().lastGoalAsset + SampleData().monthlyGoal)} 원 (월'),
+                Text('목표:'),
+                SizedBox(width: 20),
+                getTextField(goalAsset, (newValue) => goalAsset = double.parse(newValue.replaceAll(',', ''))),
+                SizedBox(width: 20),
+                Text('원  (월'),
                 SizedBox(width: 10),
-                Container(
-                  width: 70,
-                  height: 30,
-                  alignment: Alignment.center,
-                  child: TextField(
-                    decoration: new InputDecoration(
-                      border: OutlineInputBorder(),
-                      contentPadding: EdgeInsets.only(
-                        bottom: 15
-                      ),
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
+                getTextField(monthlyGoal, (newValue) => monthlyGoal = double.parse(newValue.replaceAll(',', ''))),
                 SizedBox(width: 5),
                 Text('만원)'),
-                SizedBox(width: 20),
-                ElevatedButton(
-                  child: Text('저장'),
-                  onPressed: () {
-                    // todo: monthlyGoal 저장하기
-                  },
-                ),
               ],
             ),
             SizedBox(height: 50),
@@ -133,7 +147,13 @@ class _CashFlowState extends State<CashFlow> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('현금현황', textScaleFactor: 2),
+                    Row(
+                      children: [
+                        Text('현금현황', textScaleFactor: 2),
+                        SizedBox(width: 20),
+                        Text('(총  ' + f.format(totalCash) + '  원)', textScaleFactor: 1.5)
+                      ],
+                    ),
                     SizedBox(height: 20),
                     Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -162,7 +182,13 @@ class _CashFlowState extends State<CashFlow> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('투자현황', textScaleFactor: 2),
+                    Row(
+                      children: [
+                        Text('투자현황', textScaleFactor: 2),
+                        SizedBox(width: 20),
+                        Text('(총  ' + f.format(totalInvest) + '  원)', textScaleFactor: 1.5)
+                      ],
+                    ),
                     SizedBox(height: 20),
                     Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -254,7 +280,7 @@ class _CashFlowState extends State<CashFlow> {
     );
   }
 
-  TextField getTextField(dynamic data, Function(String) function) {
+  Container getTextField(dynamic data, Function(String) function) {
     FocusNode focusNode = FocusNode();
     focusNode.addListener(() {
       if(!focusNode.hasFocus) {
@@ -272,10 +298,24 @@ class _CashFlowState extends State<CashFlow> {
       textFieldController.text = f.format(data);
       inputFormatter.add(FilteringTextInputFormatter.digitsOnly);
     }
-    return TextField(
-      focusNode: focusNode,
-      controller: textFieldController,
-      inputFormatters: inputFormatter,
+    return Container(
+      height: 30,
+      alignment: Alignment.center,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(minWidth: 50),
+        child: IntrinsicWidth(
+          child: TextField(
+            decoration: InputDecoration(
+              border: OutlineInputBorder(),
+              contentPadding: EdgeInsets.fromLTRB(15,0,15,15)
+            ),
+            textAlign: TextAlign.center,
+            focusNode: focusNode,
+            controller: textFieldController,
+            inputFormatters: inputFormatter,
+          ),
+        ),
+      ),
     );
   }
 

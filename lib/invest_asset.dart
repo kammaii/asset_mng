@@ -11,7 +11,7 @@ class InvestAsset {
   late String assetType;
   late String tag;
 
-  InvestAsset([this.currency='', this.item='', this.buyPrice=0, this.currentPrice=0, this.quantity=0, this.assetType='', this.tag='']);
+  InvestAsset([this.currency='원', this.item='', this.buyPrice=0, this.currentPrice=0, this.quantity=0, this.assetType='', this.tag='']);
 
   static const String CURRENCY = 'currency';
   static const String ITEM = 'item';
@@ -38,7 +38,7 @@ class InvestAsset {
   }
 
   String getEarningsRate() {  // 수익률
-    return (getTotalRevenue() / getGrossPurchase()).toStringAsFixed(2);
+    return (getTotalRevenue() / getGrossPurchase() * 100).toStringAsFixed(1) + '%';
   }
 
   // String getEarningsGrowthRate() {  // 수익증가율
