@@ -281,12 +281,6 @@ class _CashFlowState extends State<CashFlow> {
   }
 
   Container getTextField(dynamic data, Function(String) function) {
-    FocusNode focusNode = FocusNode();
-    focusNode.addListener(() {
-      if(!focusNode.hasFocus) {
-        setState(() {});
-      }
-    });
     TextEditingController textFieldController = TextEditingController();
     textFieldController.addListener(() {
       function(textFieldController.text);
@@ -310,7 +304,6 @@ class _CashFlowState extends State<CashFlow> {
               contentPadding: EdgeInsets.fromLTRB(15,0,15,15)
             ),
             textAlign: TextAlign.center,
-            focusNode: focusNode,
             controller: textFieldController,
             inputFormatters: inputFormatter,
           ),
