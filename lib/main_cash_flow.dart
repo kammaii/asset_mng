@@ -174,7 +174,7 @@ class _CashFlowState extends State<CashFlow> {
                 ),
               ),
             ),
-            SizedBox(height: 100),
+            SizedBox(height: 50),
             Card(
               elevation: cardElevation,
               child: Padding(
@@ -262,7 +262,7 @@ class _CashFlowState extends State<CashFlow> {
                   DataCell(IconButton(
                       onPressed: () {
                         setState(() {
-                          cashAssetList.removeAt(index);
+                          investAssetList.removeAt(index);
                         });
                       },
                       icon: Icon(Icons.cancel_outlined, color: Colors.red))
@@ -298,14 +298,21 @@ class _CashFlowState extends State<CashFlow> {
       child: ConstrainedBox(
         constraints: BoxConstraints(minWidth: 50),
         child: IntrinsicWidth(
-          child: TextField(
-            decoration: InputDecoration(
-              border: OutlineInputBorder(),
-              contentPadding: EdgeInsets.fromLTRB(15,0,15,15)
+          child: Focus(
+            onFocusChange: (hasFocus) {
+              if(!hasFocus) {
+                setState(() {});
+              }
+            },
+            child: TextField(
+              decoration: InputDecoration(
+                border: OutlineInputBorder(),
+                contentPadding: EdgeInsets.fromLTRB(15,0,15,15)
+              ),
+              textAlign: TextAlign.center,
+              controller: textFieldController,
+              inputFormatters: inputFormatter,
             ),
-            textAlign: TextAlign.center,
-            controller: textFieldController,
-            inputFormatters: inputFormatter,
           ),
         ),
       ),
