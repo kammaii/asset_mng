@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:intl/intl.dart';
 
+import 'asset.dart';
 import 'database.dart';
 
 class CashFlow extends StatefulWidget {
@@ -18,24 +19,23 @@ class CashFlow extends StatefulWidget {
 }
 
 class _CashFlowState extends State<CashFlow> {
-  static const String CASH_ASSET = 'cashAsset';
-  static const String INVEST_ASSET = 'investAsset';
-
-  String existDate = '';
+  String thisDate = '';
   String newDate = '';
   List<String> assetTypeDropdownList = ['투자자산', '연금자산', '생활비']; // todo: 입력받을 수 있는 기능 만들기
   List<String> currencyDropdownList = ['원', '달러', '바트']; // todo: 입력받을 수 있는 기능 만들기
 
   var f = NumberFormat('###,###,###,###.##');
+
+  List<Asset> assetList = [];
   double lastMonthGoal = 0;
-  double goalAsset = 0;
+  double thisMonthGoal = 0;
   double monthlyGoal = 0;
+
   static const double cardPadding = 30.0;
   static const double cardElevation = 5.0;
 
-  late List<CashAsset> cashAssetList;
-  late List<InvestAsset> investAssetList;
-
+  late List<Asset> cashAssetList;
+  late List<Asset> investAssetList;
 
   bool isInputMode = true;
   bool isModeChanged = true;
@@ -50,22 +50,14 @@ class _CashFlowState extends State<CashFlow> {
     investAssetList = [];
 
     if(isInputMode) {
-      //todo: 가장 최근의 데이터 가져오기
-      for (String cashData in SampleData().getLastCashAssetJson()) {
-        cashAssetList.add(CashAsset.fromJson(jsonDecode(cashData)));
-      }
-      for (String investAsset in SampleData().getLastInvestAssetJson()) {
-        investAssetList.add(InvestAsset.fromJson(jsonDecode(investAsset)));
+      // 가장 최근의 데이터 가져오기
+      for (Asset asset in assetList) {
+        asset.isCash ? cashAssetList.add(asset) : investAssetList.add(asset);
       }
 
     } else {
-      //todo: 날짜에 맞는 데이터 가져오기
-      for (String cashData in SampleData().getLastCashAssetJson()) {
-        cashAssetList.add(CashAsset.fromJson(jsonDecode(cashData)));
-      }
-      for (String investAsset in SampleData().getLastInvestAssetJson()) {
-        investAssetList.add(InvestAsset.fromJson(jsonDecode(investAsset)));
-      }
+      //todo: 날짜에 맞는 자산 데이터 가져오기
+
     }
   }
 
@@ -73,13 +65,13 @@ class _CashFlowState extends State<CashFlow> {
   void getTotalAsset() {
     totalCash = 0;
     totalInvest = 0;
-    Map<String, double> exchangeRate = Map();
-    for(CashAsset cashAsset in cashAssetList) {
+    //Map<String, double> exchangeRate = Map();
+    for(Asset cashAsset in cashAssetList) {
       totalCash += cashAsset.amount * cashAsset.exchangeRate;
-      exchangeRate[cashAsset.currency] = cashAsset.exchangeRate;
+      //exchangeRate[cashAsset.currency] = cashAsset.exchangeRate;
     }
-    for(InvestAsset investAsset in investAssetList) {
-      //totalInvest += (investAsset.getGrossValue() * exchangeRate[investAsset.currency]); //todo: 이거 왜 에러지?
+    for(Asset investAsset in investAssetList) {
+      totalInvest += (investAsset.getGrossValue() * investAsset.exchangeRate);
     }
   }
 
@@ -93,9 +85,10 @@ class _CashFlowState extends State<CashFlow> {
   void getInitData() async {
     await Database().getInitDate();
     setState(() {
+      assetList = Database().lastAssetList;
       lastMonthGoal = Database().lastMonthGoal;
       monthlyGoal = Database().monthlyGoal;
-      goalAsset = lastMonthGoal + monthlyGoal;
+      thisMonthGoal = lastMonthGoal + monthlyGoal;
     });
   }
 
@@ -118,7 +111,7 @@ class _CashFlowState extends State<CashFlow> {
                 ElevatedButton(
                   onPressed: () {
                     setState(() {
-                      existDate = '';
+                      thisDate = '';
                       newDate = '';
                       isInputMode = true;
                       isModeChanged = true;
@@ -132,8 +125,8 @@ class _CashFlowState extends State<CashFlow> {
               children: [
                 Text('년/월: '),
                 SizedBox(width: 20),
-                getDropDownButton(existDate, Database().dateList, (newValue) {
-                  existDate = newValue;
+                getDropDownButton(thisDate, Database().dateList, (newValue) {
+                  thisDate = newValue;
                   isInputMode = false;
                   isModeChanged = true;
                 }),
@@ -149,7 +142,7 @@ class _CashFlowState extends State<CashFlow> {
               children: [
                 Text('목표:'),
                 SizedBox(width: 20),
-                getTextField(goalAsset, (newValue) => goalAsset = double.parse(newValue.replaceAll(',', ''))),
+                getTextField(thisMonthGoal, (newValue) => thisMonthGoal = double.parse(newValue.replaceAll(',', ''))),
                 SizedBox(width: 20),
                 Text('원  (월'),
                 SizedBox(width: 10),
@@ -157,7 +150,7 @@ class _CashFlowState extends State<CashFlow> {
                   double newGoal = double.parse(newValue.replaceAll(',', ''));
                   monthlyGoal = newGoal;
                   Database().setMonthlyGoal(newGoal);
-                  goalAsset = lastMonthGoal + newGoal;
+                  thisMonthGoal = lastMonthGoal + newGoal;
                 }),
                 SizedBox(width: 5),
                 Text('만원)'),
@@ -182,13 +175,13 @@ class _CashFlowState extends State<CashFlow> {
                     Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        makeTable(CASH_ASSET),
+                        makeTable(true),
                         SizedBox(height: 20),
                         IconButton(
                           icon: Icon(Icons.add_circle_outline_rounded, color: Theme.of(context).colorScheme.primary),
                           onPressed: () {
                             setState(() {
-                              cashAssetList.add(CashAsset());
+                              cashAssetList.add(Asset(true));
                             });
                           },
                         )
@@ -217,13 +210,13 @@ class _CashFlowState extends State<CashFlow> {
                     Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        makeTable(INVEST_ASSET),
+                        makeTable(false),
                         SizedBox(height: 20),
                         IconButton(
                           icon: Icon(Icons.add_circle_outline_rounded, color: Theme.of(context).colorScheme.primary),
                           onPressed: () {
                             setState(() {
-                              investAssetList.add(InvestAsset());
+                              investAssetList.add(Asset(false));
                             });
                           },
                         )
@@ -240,8 +233,15 @@ class _CashFlowState extends State<CashFlow> {
                 children: [
                   getDialog('저장하기', '저장할까요?', Colors.blue, (){
                     String date;
-                    isInputMode? date = newDate : date = existDate;
-                    Database().saveAsset(context, date, goalAsset, cashAssetList, investAssetList);
+                    isInputMode? date = newDate : date = thisDate;
+                    List<Asset> assetList = [];
+                    for(Asset cashAsset in cashAssetList) {
+                      assetList.add(cashAsset);
+                    }
+                    for(Asset investAsset in investAssetList) {
+                      assetList.add(investAsset);
+                    }
+                    Database().saveAsset(context, date, thisMonthGoal, assetList);
                   }),
                   SizedBox(width: 20),
                   getDialog('삭제하기', '삭제할까요?', Colors.red, (){print('삭제');})
@@ -279,36 +279,33 @@ class _CashFlowState extends State<CashFlow> {
     );
   }
 
-  DataTable makeTable(String type) {
+  DataTable makeTable(bool isCash) {
     List<DataColumn> dataColumn = [];
     List<DataRow> dataRow = [];
 
-    switch (type) {
-      case CASH_ASSET :
-        List<String> columns = ['자산타입','통화','금액','환율','원화환산',''];
-        dataColumn = List<DataColumn>.generate(columns.length, (index) => DataColumn(label: Text(columns[index])));
-        dataRow = List<DataRow>.generate(cashAssetList.length, (index) =>
+    if(isCash) {
+      List<String> columns = ['자산타입', '통화', '금액', '환율', '원화환산', ''];
+      dataColumn = List<DataColumn>.generate(columns.length, (index) => DataColumn(label: Text(columns[index])));
+      dataRow = List<DataRow>.generate(cashAssetList.length, (index) =>
           DataRow(
-            cells: [
-              DataCell(getDropDownButton(cashAssetList[index].assetType, assetTypeDropdownList, (newValue) => cashAssetList[index].assetType = newValue)),
-              DataCell(getDropDownButton(cashAssetList[index].currency, currencyDropdownList, (newValue) => cashAssetList[index].currency = newValue)),
-              DataCell(getTextField(cashAssetList[index].amount, (newValue) => cashAssetList[index].amount = double.parse(newValue.replaceAll(',', '')))),
-              DataCell(getTextField(cashAssetList[index].exchangeRate, (newValue) => cashAssetList[index].exchangeRate = double.parse(newValue.replaceAll(',', '')))),
-              DataCell(Text(f.format(cashAssetList[index].amount * cashAssetList[index].exchangeRate))),
-              DataCell(IconButton(
-                onPressed: () {
-                  setState(() {
-                    cashAssetList.removeAt(index);
-                  });
-                },
-                icon: Icon(Icons.cancel_outlined, color: Colors.red))
-              )
-            ]
+              cells: [
+                DataCell(getDropDownButton(cashAssetList[index].assetType, assetTypeDropdownList, (newValue) => cashAssetList[index].assetType = newValue)),
+                DataCell(getDropDownButton(cashAssetList[index].currency, currencyDropdownList, (newValue) => cashAssetList[index].currency = newValue)),
+                DataCell(getTextField(cashAssetList[index].amount, (newValue) => cashAssetList[index].amount = double.parse(newValue.replaceAll(',', '')))),
+                DataCell(getTextField(cashAssetList[index].exchangeRate, (newValue) => cashAssetList[index].exchangeRate = double.parse(newValue.replaceAll(',', '')))),
+                DataCell(Text(f.format(cashAssetList[index].amount * cashAssetList[index].exchangeRate))),
+                DataCell(IconButton(
+                    onPressed: () {
+                      setState(() {
+                        cashAssetList.removeAt(index);
+                      });
+                    },
+                    icon: Icon(Icons.cancel_outlined, color: Colors.red))
+                )
+              ]
           )
-        );
-        break;
-
-      case INVEST_ASSET :
+      );
+    } else {
         List<String> columns = ['자산타입','통화','종목','매수가','현재가', '수량', '매입총액', '평가액' ,'수익', '수익률', '태그',''];
         dataColumn = List<DataColumn>.generate(columns.length, (index) => DataColumn(label: Text(columns[index])));
         dataRow = List<DataRow>.generate(investAssetList.length, (index) =>
@@ -319,7 +316,7 @@ class _CashFlowState extends State<CashFlow> {
                   DataCell(getTextField(investAssetList[index].item, (newValue) => investAssetList[index].item = newValue)),
                   DataCell(getTextField(investAssetList[index].buyPrice, (newValue) => investAssetList[index].buyPrice = double.parse(newValue.replaceAll(',', '')))),
                   DataCell(getTextField(investAssetList[index].currentPrice, (newValue) => investAssetList[index].currentPrice = double.parse(newValue.replaceAll(',', '')))),
-                  DataCell(getTextField(investAssetList[index].quantity, (newValue) => investAssetList[index].quantity = double.parse(newValue.replaceAll(',', '')))),
+                  DataCell(getTextField(investAssetList[index].amount, (newValue) => investAssetList[index].amount = double.parse(newValue.replaceAll(',', '')))),
                   DataCell(Text(f.format(investAssetList[index].getGrossPurchase()))),
                   DataCell(Text(f.format(investAssetList[index].getGrossValue()))),
                   DataCell(Text(f.format(investAssetList[index].getTotalRevenue()))),
@@ -336,7 +333,6 @@ class _CashFlowState extends State<CashFlow> {
                 ]
             )
         );
-        break;
     }
 
     return DataTable(
