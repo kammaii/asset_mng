@@ -1,8 +1,8 @@
-
-import 'dart:convert';
+import 'package:uuid/uuid.dart';
 
 class InvestAsset {
 
+  late String id;
   late String currency;
   late String item;
   late double buyPrice;
@@ -11,8 +11,12 @@ class InvestAsset {
   late String assetType;
   late String tag;
 
-  InvestAsset([this.currency='원', this.item='', this.buyPrice=0, this.currentPrice=0, this.quantity=0, this.assetType='', this.tag='']);
+  //InvestAsset([this.currency='원', this.item='', this.buyPrice=0, this.currentPrice=0, this.quantity=0, this.assetType='', this.tag='']);
+  InvestAsset() {
+    this.id = Uuid().v4();
+  }
 
+  static const String ID = 'id';
   static const String CURRENCY = 'currency';
   static const String ITEM = 'item';
   static const String BUY_PRICE = 'buyPrice';
@@ -46,6 +50,7 @@ class InvestAsset {
   // }
 
   InvestAsset.fromJson(Map<String, dynamic> json) :
+    id = json[ID],
     currency = json[CURRENCY],
     item = json[ITEM],
     buyPrice = json[BUY_PRICE],
@@ -55,6 +60,7 @@ class InvestAsset {
     tag = json[TAG];
 
   Map<String, dynamic> toJson() => {
+    ID : id,
     CURRENCY : currency,
     ITEM : item,
     BUY_PRICE : buyPrice,

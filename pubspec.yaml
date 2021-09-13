@@ -34,6 +34,9 @@ dependencies:
   intl: ^0.16.1
   firebase_core: ^1.5.0
   cloud_firestore: ^2.5.1
+  awesome_dialog: ^2.1.1
+  shared_preferences: ^2.0.7
+  uuid: 3.0.4
 
 dev_dependencies:
   flutter_test:
