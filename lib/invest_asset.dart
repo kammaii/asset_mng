@@ -14,6 +14,13 @@ class InvestAsset {
   //InvestAsset([this.currency='원', this.item='', this.buyPrice=0, this.currentPrice=0, this.quantity=0, this.assetType='', this.tag='']);
   InvestAsset() {
     this.id = Uuid().v4();
+    this.currency = '원';
+    this.item = '';
+    this.buyPrice = 0;
+    this.currentPrice = 0;
+    this.quantity = 0;
+    this.assetType = '투자자산';
+    this.tag = '';
   }
 
   static const String ID = 'id';

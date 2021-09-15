@@ -11,6 +11,10 @@ class CashAsset {
   //CashAsset([this.currency = '원', this.amount = 0, this.exchangeRate = 0, this.assetType = '']);
   CashAsset() {
     this.id = Uuid().v4();
+    this.currency = '원';
+    this.amount = 0;
+    this.exchangeRate = 1;
+    this.assetType = '투자자산';
   }
 
   static const String ID = 'id';
