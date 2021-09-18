@@ -1,3 +1,4 @@
+import 'package:asset_mng/cash_detail.dart';
 import 'package:asset_mng/invest_asset.dart';
 import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -20,6 +21,7 @@ class Database {
 
   static const ASSET_MANAGER = 'assetManager';
   static const CASH_ASSET = 'cashAsset';
+  static const CASH_DETAIL = 'cashDetail';
   static const INVEST_ASSET = 'investAsset';
   static const GOAL_ASSET = 'goalAsset';
   static const MONTHLY_GOAL = 'monthlyGoal';
@@ -35,17 +37,22 @@ class Database {
   double assetGoal = 0;
 
 
-  void saveAsset(BuildContext context, String date, double goalAsset, List<CashAsset> cashAsset, List<InvestAsset> investAsset) {
+  void saveAsset(BuildContext context, String date, double goalAsset, List<CashAsset> cashAsset, List<CashDetail> cashDetail, List<InvestAsset> investAsset) {
     this.context = context;
 
     // 현금자산 저장
     for(CashAsset cashAsset in cashAsset) {
-      saveDB('$ASSET_MANAGER/$date/$CASH_ASSET', cashAsset.toJson(), 'Cash ${cashAsset.currency} added', false);
+      saveDB('$ASSET_MANAGER/$date/$CASH_ASSET/${cashAsset.id}', cashAsset.toJson(), 'Cash ${cashAsset.currency} added', false);
+    }
+
+    // 현금증감내역 저장
+    for(CashDetail cashDetail in cashDetail) {
+      saveDB('$ASSET_MANAGER/$date/$CASH_DETAIL/${cashDetail.id}', cashDetail.toJson(), 'Cash detail ${cashDetail.note} added', false);
     }
 
     // 투자자산 저장
     for(InvestAsset investAsset in investAsset) {
-      saveDB('$ASSET_MANAGER/$date/$INVEST_ASSET', investAsset.toJson(), 'Invest ${investAsset.item} added', false);
+      saveDB('$ASSET_MANAGER/$date/$INVEST_ASSET/${investAsset.id}', investAsset.toJson(), 'Invest ${investAsset.item} added', false);
     }
 
     // 목표금액 저장
@@ -57,8 +64,8 @@ class Database {
 
 
   Future<void> saveDB(String folder, dynamic data, String msg, bool isFinal) {
-    CollectionReference ref = _firestore.collection(folder);
-    return ref.add(data)
+    DocumentReference ref = _firestore.doc(folder);
+    return ref.set(data)
         .then((value) {
       if(isFinal) {
         showDialog(DialogType.SUCCES, 'Succeed save asset to DB');

@@ -11,10 +11,18 @@ class CashAsset {
   //CashAsset([this.currency = '원', this.amount = 0, this.exchangeRate = 0, this.assetType = '']);
   CashAsset() {
     this.id = Uuid().v4();
-    this.currency = '원';
+    this.currency = '';
     this.amount = 0;
     this.exchangeRate = 1;
-    this.assetType = '투자자산';
+    this.assetType = '생활비';
+  }
+
+  CashAsset.clone(CashAsset asset) {
+    this.id = asset.id;
+    this.currency = asset.currency;
+    this.amount = asset.amount;
+    this.exchangeRate = asset.exchangeRate;
+    this.assetType = asset.assetType;
   }
 
   static const String ID = 'id';
