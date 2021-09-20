@@ -30,7 +30,6 @@ class _CashFlowState extends State<CashFlow> {
   List<String> currencyDropdownList = ['','원', '달러', '바트']; // todo: 입력받을 수 있는 기능 만들기
 
   var f = NumberFormat('###,###,###,###.##');
-  double lastMonthGoal = 0;
   late double assetGoal;
   double monthGoal = 0;
   static const double cardPadding = 30.0;
@@ -59,9 +58,8 @@ class _CashFlowState extends State<CashFlow> {
   void setInputModeData() async {
     initData();
     await Database().getLastMonthData();
-    lastMonthGoal = Database().assetGoal;
     monthGoal = Database().monthGoal;
-    assetGoal = lastMonthGoal + monthGoal;
+    assetGoal = Database().assetGoal + (monthGoal * 10000);
     for(CashAsset cashAsset in Database().cashList) {
       cashAssetList.add(cashAsset);
       CashAsset asset = CashAsset.clone(cashAsset);
@@ -84,7 +82,10 @@ class _CashFlowState extends State<CashFlow> {
     for(InvestAsset investAsset in Database().investList) {
       investAssetList.add(investAsset);
     }
-    await Database().getCashAsset(Database().monthList[thisMonthIndex-1]);
+    print(Database().monthList.length);
+    if(Database().monthList.length > 2) {
+      await Database().getCashAsset(Database().monthList[thisMonthIndex - 1]);
+    }
     for(CashAsset cashAsset in Database().cashList) {
       lastCashAssetList.add(cashAsset);
     }
@@ -101,8 +102,11 @@ class _CashFlowState extends State<CashFlow> {
       exchangeRate[cashAsset.currency] = cashAsset.exchangeRate;
     }
     for(InvestAsset investAsset in investAssetList) {
-      //totalInvest += (investAsset.getGrossValue() * exchangeRate[investAsset.currency]); //todo: 이거 왜 에러지?
+      double rate = exchangeRate[investAsset.currency]!.toDouble();
+      totalInvest += (investAsset.getGrossValue() * rate);
     }
+    totalCash = totalCash.ceilToDouble();
+    totalInvest = totalInvest.ceilToDouble();
   }
 
   void checkGap() {
@@ -143,15 +147,11 @@ class _CashFlowState extends State<CashFlow> {
 
   @override
   Widget build(BuildContext context) {
-    if(isModeChanged && isInputMode) {
-      setInputModeData();
-      isModeChanged = false;
-
-    } else if(isModeChanged && !isInputMode && Database().monthList.length > 2) {
-      setReadModeData();
+    if(isModeChanged) {
+      isInputMode ? setInputModeData() : setReadModeData();
       isModeChanged = false;
     }
-    //getTotalAsset();
+    getTotalAsset();
     checkGap();
 
 
@@ -204,8 +204,6 @@ class _CashFlowState extends State<CashFlow> {
                 getTextField(monthGoal, (newValue) {
                   double newGoal = double.parse(newValue.replaceAll(',', ''));
                   monthGoal = newGoal;
-                  Database().setMonthlyGoal(newGoal);
-                  assetGoal = lastMonthGoal + newGoal;
                 }),
                 SizedBox(width: 5),
                 Text('만원)'),
@@ -367,7 +365,7 @@ class _CashFlowState extends State<CashFlow> {
                     String date;
                     isInputMode? date = newMonth : date = thisMonth;
                     if(date.isNotEmpty) {
-                      Database().saveAsset(context, date, assetGoal, cashAssetList, cashAssetDetailList, investAssetList);
+                      Database().saveAsset(context, date, assetGoal, monthGoal, cashAssetList, cashAssetDetailList, investAssetList);
                     } else {
                       showAlert('년/월을 입력하세요.');
                     }

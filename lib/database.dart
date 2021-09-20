@@ -37,7 +37,7 @@ class Database {
   double assetGoal = 0;
 
 
-  void saveAsset(BuildContext context, String date, double goalAsset, List<CashAsset> cashAsset, List<CashDetail> cashDetail, List<InvestAsset> investAsset) {
+  void saveAsset(BuildContext context, String date, double assetGoal, double monthGoal, List<CashAsset> cashAsset, List<CashDetail> cashDetail, List<InvestAsset> investAsset) {
     this.context = context;
 
     // 현금자산 저장
@@ -56,7 +56,7 @@ class Database {
     }
 
     // 목표금액 저장
-    saveDB('$ASSET_MANAGER/$date', {'$GOAL_ASSET' : goalAsset}, 'Goal $goalAsset 원 added', true);
+    saveDB('$ASSET_MANAGER/$date', {'$GOAL_ASSET' : assetGoal}, 'Goal $assetGoal 원 added', true);
 
     // 월목표금액 저장
     setMonthlyGoal(monthGoal);
@@ -105,7 +105,6 @@ class Database {
     return ref.get().then((QuerySnapshot querySnapshot) {
       if(querySnapshot.size != 0) {
         querySnapshot.docs.forEach((doc) {
-          print(doc.id);
           monthList.add(doc.id);
         });
       } else {
