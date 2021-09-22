@@ -2,6 +2,7 @@ import 'package:uuid/uuid.dart';
 
 class CashAsset {
 
+  late int no;
   late String id;
   late String currency;
   late double amount;
@@ -9,15 +10,17 @@ class CashAsset {
   late String assetType;
 
   //CashAsset([this.currency = '원', this.amount = 0, this.exchangeRate = 0, this.assetType = '']);
-  CashAsset() {
+  CashAsset(int no) {
+    this.no = no;
     this.id = Uuid().v4();
-    this.currency = '';
+    this.currency = '원';
     this.amount = 0;
     this.exchangeRate = 1;
     this.assetType = '생활비';
   }
 
   CashAsset.clone(CashAsset asset) {
+    this.no = asset.no;
     this.id = asset.id;
     this.currency = asset.currency;
     this.amount = asset.amount;
@@ -25,6 +28,7 @@ class CashAsset {
     this.assetType = asset.assetType;
   }
 
+  static const String NO = 'no';
   static const String ID = 'id';
   static const String CURRENCY = 'currency';
   static const String AMOUNT = 'amount';
@@ -32,6 +36,7 @@ class CashAsset {
   static const String ASSET_TYPE = 'assetType';
 
   CashAsset.fromJson(Map<String, dynamic> json) :
+    no = json[NO],
     id = json[ID],
     currency = json[CURRENCY],
     amount = json[AMOUNT],
@@ -39,6 +44,7 @@ class CashAsset {
     assetType = json[ASSET_TYPE];
 
   Map<String, dynamic> toJson() => {
+    NO : no,
     ID : id,
     CURRENCY : currency,
     AMOUNT : amount,

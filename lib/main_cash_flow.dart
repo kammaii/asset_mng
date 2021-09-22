@@ -1,7 +1,5 @@
-import 'dart:convert';
 import 'package:asset_mng/cash_asset.dart';
 import 'package:asset_mng/invest_asset.dart';
-import 'package:asset_mng/sample_data.dart';
 import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -26,8 +24,8 @@ class _CashFlowState extends State<CashFlow> {
 
   String thisMonth = '';
   String newMonth = '';
-  List<String> assetTypeDropdownList = ['','투자자산', '연금자산', '생활비']; // todo: 입력받을 수 있는 기능 만들기
-  List<String> currencyDropdownList = ['','원', '달러', '바트']; // todo: 입력받을 수 있는 기능 만들기
+  List<String> assetTypeDropdownList = ['투자자산', '연금자산', '생활비']; // todo: 입력받을 수 있는 기능 만들기
+  List<String> currencyDropdownList = ['원', '달러', '바트']; // todo: 입력받을 수 있는 기능 만들기
 
   var f = NumberFormat('###,###,###,###.##');
   late double assetGoal;
@@ -46,6 +44,7 @@ class _CashFlowState extends State<CashFlow> {
 
   double totalCash = 0;
   double totalInvest = 0;
+  double totalAsset = 0;
 
   void initData() {
     assetGoal = 0;
@@ -79,6 +78,9 @@ class _CashFlowState extends State<CashFlow> {
     for(CashAsset cashAsset in Database().cashList) {
       cashAssetList.add(cashAsset);
     }
+    for(CashDetail cashAssetDetail in Database().cashDetailList) {
+      cashAssetDetailList.add(cashAssetDetail);
+    }
     for(InvestAsset investAsset in Database().investList) {
       investAssetList.add(investAsset);
     }
@@ -96,7 +98,7 @@ class _CashFlowState extends State<CashFlow> {
   void getTotalAsset() {
     totalCash = 0;
     totalInvest = 0;
-    Map<String, double> exchangeRate = Map();
+    Map<String, double> exchangeRate = Map(); //todo: 환율정보를 DB에서 가져오는 것으로 수정할 것!!!
     for(CashAsset cashAsset in cashAssetList) {
       totalCash += cashAsset.amount * cashAsset.exchangeRate;
       exchangeRate[cashAsset.currency] = cashAsset.exchangeRate;
@@ -107,6 +109,7 @@ class _CashFlowState extends State<CashFlow> {
     }
     totalCash = totalCash.ceilToDouble();
     totalInvest = totalInvest.ceilToDouble();
+    totalAsset = totalCash + totalInvest;
   }
 
   void checkGap() {
@@ -209,6 +212,8 @@ class _CashFlowState extends State<CashFlow> {
                 Text('만원)'),
               ],
             ),
+            SizedBox(height: 20),
+            Text('실적:    ${f.format(totalAsset)}   원', textScaleFactor: 1.2),
             SizedBox(height: 50),
             Card(
               elevation: cardElevation,
@@ -234,7 +239,7 @@ class _CashFlowState extends State<CashFlow> {
                           icon: Icon(Icons.add_circle_outline_rounded, color: Theme.of(context).colorScheme.primary),
                           onPressed: () {
                             setState(() {
-                              cashAssetList.add(CashAsset());
+                              cashAssetList.add(CashAsset(cashAssetList.length));
                             });
                           },
                         )
@@ -281,7 +286,7 @@ class _CashFlowState extends State<CashFlow> {
                               icon: Icon(Icons.add_circle_outline_rounded, color: Theme.of(context).colorScheme.primary),
                               onPressed: () {
                                 setState(() {
-                                  cashAssetDetailList.add(CashDetail());
+                                  cashAssetDetailList.add(CashDetail(cashAssetDetailList.length));
                                 });
                               },
                             )
@@ -346,7 +351,7 @@ class _CashFlowState extends State<CashFlow> {
                           icon: Icon(Icons.add_circle_outline_rounded, color: Theme.of(context).colorScheme.primary),
                           onPressed: () {
                             setState(() {
-                              investAssetList.add(InvestAsset());
+                              investAssetList.add(InvestAsset(investAssetList.length));
                             });
                           },
                         )
@@ -446,6 +451,9 @@ class _CashFlowState extends State<CashFlow> {
                     onPressed: () {
                       setState(() {
                         cashAssetList.removeAt(index);
+                        for(int i=index; i<cashAssetList.length; i++) {
+                          cashAssetList[i].no--;
+                        }
                       });
                     },
                     icon: Icon(Icons.cancel_outlined, color: Colors.red))
@@ -483,6 +491,9 @@ class _CashFlowState extends State<CashFlow> {
                       onPressed: () {
                         setState(() {
                           cashAssetDetailList.removeAt(index);
+                          for(int i=index; i<cashAssetDetailList.length; i++) {
+                            cashAssetDetailList[i].no--;
+                          }
                         });
                       },
                       icon: Icon(Icons.cancel_outlined, color: Colors.red))
@@ -513,6 +524,9 @@ class _CashFlowState extends State<CashFlow> {
                       onPressed: () {
                         setState(() {
                           investAssetList.removeAt(index);
+                          for(int i=index; i<investAssetList.length; i++) {
+                            investAssetList[i].no--;
+                          }
                         });
                       },
                       icon: Icon(Icons.cancel_outlined, color: Colors.red))

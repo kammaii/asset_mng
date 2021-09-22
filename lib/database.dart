@@ -33,6 +33,7 @@ class Database {
   List<String> monthList = [''];
   double monthGoal = 0;
   List<CashAsset> cashList = [];
+  List<CashDetail> cashDetailList = [];
   List<InvestAsset> investList = [];
   double assetGoal = 0;
 
@@ -72,8 +73,7 @@ class Database {
       } else {
         print(msg);
       }
-    })
-        .catchError((e) => showDialog(DialogType.ERROR, 'Error + $e'));
+    }).catchError((e) => showDialog(DialogType.ERROR, 'Error + $e'));
   }
 
   AwesomeDialog showDialog(DialogType type, String title) {
@@ -97,6 +97,7 @@ class Database {
   getSpecificMonthData(String month) async {
     await getAssetGoal(month);
     await getCashAsset(month);
+    await getCashAssetDetail(month);
     await getInvestAsset(month);
   }
 
@@ -138,8 +139,22 @@ class Database {
         Map<String, dynamic> data = element.data() as Map<String, dynamic>;
         cashList.add(CashAsset.fromJson(data));
       });
+      cashList.sort((a,b) => a.no.compareTo(b.no));
     });
   }
+
+  Future<void> getCashAssetDetail(String date) async {
+    cashDetailList = [];
+    CollectionReference ref = _firestore.collection('$ASSET_MANAGER/$date/$CASH_DETAIL');
+    return ref.get().then((QuerySnapshot snapshot) {
+      snapshot.docs.forEach((element) {
+        Map<String, dynamic> data = element.data() as Map<String, dynamic>;
+        cashDetailList.add(CashDetail.fromJson(data));
+      });
+      cashDetailList.sort((a,b) => a.no.compareTo(b.no));
+    });
+  }
+
 
   Future<void> getInvestAsset(String date) async {
     investList = [];
@@ -149,6 +164,7 @@ class Database {
         Map<String, dynamic> data = element.data() as Map<String, dynamic>;
         investList.add(InvestAsset.fromJson(data));
       });
+      investList.sort((a,b) => a.no.compareTo(b.no));
     });
   }
 
