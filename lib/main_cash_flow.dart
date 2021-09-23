@@ -430,7 +430,7 @@ class _CashFlowState extends State<CashFlow> {
 
     switch (type) {
       case CASH_ASSET :
-        List<String> columns = ['자산타입','통화','금액','증가액','환율','원화환산',''];
+        List<String> columns = ['자산타입','통화','금액','증가액','환율','원화환산','',''];
         dataColumn = List<DataColumn>.generate(columns.length, (index) => DataColumn(label: Text(columns[index])));
         dataRow = List<DataRow>.generate(cashAssetList.length, (index) {
           double variation = cashAssetList[index].amount;
@@ -457,7 +457,27 @@ class _CashFlowState extends State<CashFlow> {
                       });
                     },
                     icon: Icon(Icons.cancel_outlined, color: Colors.red))
-                )
+                ),
+                DataCell(getIndexEdit(index, (isUpside) {
+                  if(isUpside && index != 0) {
+                    setState(() {
+                      cashAssetList[index].no--;
+                      cashAssetList[index - 1].no++;
+                      CashAsset asset = cashAssetList[index];
+                      cashAssetList.removeAt(index);
+                      cashAssetList.insert(index-1, asset);
+                    });
+
+                  } else if(!isUpside && index != cashAssetList.length-1) {
+                    setState(() {
+                      cashAssetList[index].no++;
+                      cashAssetList[index + 1].no--;
+                      CashAsset asset = cashAssetList[index];
+                      cashAssetList.removeAt(index);
+                      cashAssetList.insert(index+1, asset);
+                    });
+                  }
+                }))
               ]
           );
         });
@@ -478,7 +498,7 @@ class _CashFlowState extends State<CashFlow> {
         break;
 
       case CASH_DETAIL :
-        List<String> columns = ['자산타입','통화','금액','내용',''];
+        List<String> columns = ['자산타입','통화','금액','내용','',''];
         dataColumn = List<DataColumn>.generate(columns.length, (index) => DataColumn(label: Text(columns[index])));
         dataRow = List<DataRow>.generate(cashAssetDetailList.length, (index) =>
             DataRow(
@@ -497,14 +517,34 @@ class _CashFlowState extends State<CashFlow> {
                         });
                       },
                       icon: Icon(Icons.cancel_outlined, color: Colors.red))
-                  )
+                  ),
+                  DataCell(getIndexEdit(index, (isUpside) {
+                    if(isUpside && index != 0) {
+                      setState(() {
+                        cashAssetDetailList[index].no--;
+                        cashAssetDetailList[index - 1].no++;
+                        CashDetail detail = cashAssetDetailList[index];
+                        cashAssetDetailList.removeAt(index);
+                        cashAssetDetailList.insert(index-1, detail);
+                      });
+
+                    } else if(!isUpside && index != cashAssetDetailList.length-1) {
+                      setState(() {
+                        cashAssetDetailList[index].no++;
+                        cashAssetDetailList[index + 1].no--;
+                        CashDetail detail = cashAssetDetailList[index];
+                        cashAssetDetailList.removeAt(index);
+                        cashAssetDetailList.insert(index+1, detail);
+                      });
+                    }
+                  }))
                 ]
             )
         );
         break;
 
       case INVEST_ASSET :
-        List<String> columns = ['자산타입','통화','종목','매수가','현재가', '수량', '매입총액', '평가액' ,'수익', '수익률', '태그',''];
+        List<String> columns = ['자산타입','통화','종목','매수가','현재가', '수량', '매입총액', '평가액' ,'수익', '수익률', '태그','',''];
         dataColumn = List<DataColumn>.generate(columns.length, (index) => DataColumn(label: Text(columns[index])));
         dataRow = List<DataRow>.generate(investAssetList.length, (index) =>
             DataRow(
@@ -530,7 +570,27 @@ class _CashFlowState extends State<CashFlow> {
                         });
                       },
                       icon: Icon(Icons.cancel_outlined, color: Colors.red))
-                  )
+                  ),
+                  DataCell(getIndexEdit(index, (isUpside) {
+                    if(isUpside && index != 0) {
+                      setState(() {
+                        investAssetList[index].no--;
+                        investAssetList[index - 1].no++;
+                        InvestAsset asset = investAssetList[index];
+                        investAssetList.removeAt(index);
+                        investAssetList.insert(index-1, asset);
+                      });
+
+                    } else if(!isUpside && index != investAssetList.length-1) {
+                      setState(() {
+                        investAssetList[index].no++;
+                        investAssetList[index + 1].no--;
+                        InvestAsset asset = investAssetList[index];
+                        investAssetList.removeAt(index);
+                        investAssetList.insert(index+1, asset);
+                      });
+                    }
+                  }))
                 ]
             )
         );
@@ -541,6 +601,29 @@ class _CashFlowState extends State<CashFlow> {
       headingTextStyle: TextStyle(fontWeight: FontWeight.bold),
       columns: dataColumn,
       rows: dataRow,
+    );
+  }
+
+  Row getIndexEdit(int index, Function(bool) f) {
+    return Row(
+      children: [
+        Expanded(
+          child: IconButton(
+            icon: Icon(Icons.arrow_drop_up_rounded),
+            onPressed: () {
+              f(true);
+            },
+          ),
+        ),
+        Expanded(
+          child: IconButton(
+            icon: Icon(Icons.arrow_drop_down_rounded),
+            onPressed: () {
+              f(false);
+            },
+          ),
+        ),
+      ],
     );
   }
 
