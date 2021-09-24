@@ -105,13 +105,23 @@ class Database {
     CollectionReference ref = _firestore.collection(ASSET_MANAGER);
     return ref.get().then((QuerySnapshot querySnapshot) {
       if(querySnapshot.size != 0) {
+        List<double> d = [];
         querySnapshot.docs.forEach((doc) {
-          monthList.add(doc.id);
+          d.add(double.parse(doc.id));
         });
+        d.sort((a,b) => a.compareTo(b));
+        monthListInOrder(d);
       } else {
-        monthList = [];
+        monthList = [''];
       }
     }).catchError((e) => print('ERROR : $e'));
+  }
+
+  void monthListInOrder(List<double> d) {
+    monthList = [''];
+    for(double dd in d) {
+      monthList.add(dd.toString());
+    }
   }
 
   Future<void> getMonthGoal() async {
