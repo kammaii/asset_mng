@@ -84,8 +84,7 @@ class _CashFlowState extends State<CashFlow> {
     for(InvestAsset investAsset in Database().investList) {
       investAssetList.add(investAsset);
     }
-    print(Database().monthList.length);
-    if(Database().monthList.length > 2) {
+    if(Database().monthList[thisMonthIndex - 1] != '') {
       await Database().getCashAsset(Database().monthList[thisMonthIndex - 1]);
     }
     for(CashAsset cashAsset in Database().cashList) {
@@ -367,16 +366,22 @@ class _CashFlowState extends State<CashFlow> {
               child: Row(
                 children: [
                   getDialog('저장하기', '저장할까요?', Colors.blue, (){
-                    String date;
-                    isInputMode? date = newMonth : date = thisMonth;
-                    if(date.isNotEmpty) {
-                      Database().saveAsset(context, date, assetGoal, monthGoal, cashAssetList, cashAssetDetailList, investAssetList);
+                    String month;
+                    isInputMode? month = newMonth : month = thisMonth;
+                    if(month.isNotEmpty) {
+                      Database().saveAsset(context, isInputMode, month, assetGoal, monthGoal, cashAssetList, cashAssetDetailList, investAssetList);
                     } else {
                       showAlert('년/월을 입력하세요.');
                     }
                   }),
                   SizedBox(width: 20),
-                  getDialog('삭제하기', '삭제할까요?', Colors.red, (){print('삭제');})
+                  getDialog('삭제하기', '삭제할까요?', Colors.red, (){
+                    if(isInputMode) {
+                      showAlert('입력 모드에서는 삭제할 수 없습니다.');
+                    } else {
+                      Database().deleteMonth(context, thisMonth, cashAssetList);
+                    }
+                  })
                 ],
               ),
             ),

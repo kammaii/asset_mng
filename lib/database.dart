@@ -37,43 +37,56 @@ class Database {
   List<InvestAsset> investList = [];
   double assetGoal = 0;
 
+  late List<String> cashIdList;
+  late List<String> cashDetailIdList;
+  late List<String> investIdList;
 
-  void saveAsset(BuildContext context, String date, double assetGoal, double monthGoal, List<CashAsset> cashAsset, List<CashDetail> cashDetail, List<InvestAsset> investAsset) {
+  void saveAsset(BuildContext context, bool isInputMode, String month, double assetGoal, double monthGoal, List<CashAsset> cashAsset, List<CashDetail> cashDetail, List<InvestAsset> investAsset) {
     this.context = context;
+    cashIdList = [];
+    cashDetailIdList = [];
+    investIdList = [];
 
     // 현금자산 저장
     for(CashAsset cashAsset in cashAsset) {
-      saveDB('$ASSET_MANAGER/$date/$CASH_ASSET/${cashAsset.id}', cashAsset.toJson(), 'Cash ${cashAsset.currency} added', false);
+      cashIdList.add(cashAsset.id);
+      saveDB('$ASSET_MANAGER/$month/$CASH_ASSET/${cashAsset.id}', cashAsset.toJson(), 'Cash ${cashAsset.currency} added');
     }
 
     // 현금증감내역 저장
     for(CashDetail cashDetail in cashDetail) {
-      saveDB('$ASSET_MANAGER/$date/$CASH_DETAIL/${cashDetail.id}', cashDetail.toJson(), 'Cash detail ${cashDetail.note} added', false);
+      cashDetailIdList.add(cashDetail.id);
+      saveDB('$ASSET_MANAGER/$month/$CASH_DETAIL/${cashDetail.id}', cashDetail.toJson(), 'Cash detail ${cashDetail.note} added');
     }
 
     // 투자자산 저장
     for(InvestAsset investAsset in investAsset) {
-      saveDB('$ASSET_MANAGER/$date/$INVEST_ASSET/${investAsset.id}', investAsset.toJson(), 'Invest ${investAsset.item} added', false);
+      investIdList.add(investAsset.id);
+      saveDB('$ASSET_MANAGER/$month/$INVEST_ASSET/${investAsset.id}', investAsset.toJson(), 'Invest ${investAsset.item} added');
     }
 
     // 목표금액 저장
-    saveDB('$ASSET_MANAGER/$date', {'$GOAL_ASSET' : assetGoal}, 'Goal $assetGoal 원 added', true);
+    saveDB('$ASSET_MANAGER/$month', {'$GOAL_ASSET' : assetGoal}, 'Goal $assetGoal 원 added', isLast: true, isInput: isInputMode, month: month);
 
     // 월목표금액 저장
     setMonthlyGoal(monthGoal);
   }
 
 
-  Future<void> saveDB(String folder, dynamic data, String msg, bool isFinal) {
+  Future<void> saveDB(String folder, dynamic data, String msg, {bool? isLast, bool? isInput, String? month}) {
     DocumentReference ref = _firestore.doc(folder);
-    return ref.set(data)
-        .then((value) {
-      if(isFinal) {
-        showDialog(DialogType.SUCCES, 'Succeed save asset to DB');
+    return ref.set(data).then((value) {
+      if(isLast!) {
+        if(!isInput!) {
+          checkRemovedDoc(month!);
+        }
+        //showDialog(DialogType.SUCCES, 'Succeed save asset to DB');
+        print('Succeed save asset to DB');
+        getMonthList();
       } else {
         print(msg);
       }
-    }).catchError((e) => showDialog(DialogType.ERROR, 'Error + $e'));
+    }).catchError((e) => print('Error + $e'));
   }
 
   AwesomeDialog showDialog(DialogType type, String title) {
@@ -85,6 +98,66 @@ class Database {
       title: title,
     )..show();
   }
+
+  void checkRemovedDoc(String month) {
+    for(CashAsset asset in cashList) {
+      if(!cashIdList.contains(asset.id)) {
+        deleteDoc('$ASSET_MANAGER/$month/$CASH_ASSET/${asset.id}');
+      }
+    }
+    for(CashDetail asset in cashDetailList) {
+      if(!cashDetailIdList.contains(asset.id)) {
+        deleteDoc('$ASSET_MANAGER/$month/$CASH_DETAIL/${asset.id}');
+      }
+    }
+    for(InvestAsset asset in investList) {
+      if(!investIdList.contains(asset.id)) {
+        deleteDoc('$ASSET_MANAGER/$month/$INVEST_ASSET/${asset.id}');
+      }
+    }
+  }
+
+  Future<void> deleteDoc(String path) {
+    DocumentReference ref = _firestore.doc(path);
+    return ref.delete()
+      .then((value) => print('$path deleted'))
+      .catchError((e) => print('failed to delete doc : $path'));
+  }
+
+  void deleteMonth(BuildContext context, String month, List<CashAsset> cashList) {
+    this.context = context;
+    for(CashAsset asset in cashList) {
+      deleteMonthTransaction('$ASSET_MANAGER/$month/$CASH_ASSET/${asset.id}');
+    }
+    for(CashDetail asset in cashDetailList) {
+      deleteMonthTransaction('$ASSET_MANAGER/$month/$CASH_DETAIL/${asset.id}');
+    }
+    for(InvestAsset asset in investList) {
+      deleteMonthTransaction('$ASSET_MANAGER/$month/$INVEST_ASSET/${asset.id}');
+    }
+    deleteMonthTransaction('$ASSET_MANAGER/$month', isLast: true);
+  }
+
+  Future<void> deleteMonthTransaction(String path, {bool? isLast}) {
+    DocumentReference ref = _firestore.doc(path);
+    return _firestore.runTransaction((transaction) async {
+      DocumentSnapshot snapshot = await transaction.get(ref);
+      if(snapshot.exists) {
+        transaction.delete(ref);
+        if(isLast!) {
+          print('Succeed delete month');
+          getMonthList();
+        }
+      } else {
+        print('Not exist $path');
+      }
+      // if(isLast!) {
+      //   showDialog(DialogType.SUCCES, 'Succeed delete month');
+      // }
+    });
+  }
+
+
 
   getLastMonthData() async {
     if(monthList.length < 2) {
@@ -102,6 +175,7 @@ class Database {
   }
 
   Future<void> getMonthList() {
+    monthList = [''];
     CollectionReference ref = _firestore.collection(ASSET_MANAGER);
     return ref.get().then((QuerySnapshot querySnapshot) {
       if(querySnapshot.size != 0) {
@@ -110,19 +184,13 @@ class Database {
           d.add(double.parse(doc.id));
         });
         d.sort((a,b) => a.compareTo(b));
-        monthListInOrder(d);
-      } else {
-        monthList = [''];
+        for(double dd in d) {
+          monthList.add(dd.toStringAsFixed(2));
+        }
       }
     }).catchError((e) => print('ERROR : $e'));
   }
 
-  void monthListInOrder(List<double> d) {
-    monthList = [''];
-    for(double dd in d) {
-      monthList.add(dd.toString());
-    }
-  }
 
   Future<void> getMonthGoal() async {
     monthGoal = 0;
@@ -143,6 +211,7 @@ class Database {
 
   Future<void> getCashAsset(String date) async {
     cashList = [];
+    print(date);
     CollectionReference ref = _firestore.collection('$ASSET_MANAGER/$date/$CASH_ASSET');
     return ref.get().then((QuerySnapshot snapshot) {
       snapshot.docs.forEach((element) {
@@ -187,7 +256,7 @@ class Database {
     DocumentReference ref = _firestore.doc('assetManager/$date/cashAsset/${cashAsset.currency}');
     return ref.set(cashAsset.toJson())
         .then((value) => print('Cash ${cashAsset.currency} added'))
-        .catchError((e) => showDialog(DialogType.ERROR, 'Error + $e'));
+        .catchError((e) => print('Error + $e'));
   }
 
   Future<void> saveInvestAsset(String date, InvestAsset investAsset) {
