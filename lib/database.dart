@@ -82,6 +82,7 @@ class Database {
         }
         //showDialog(DialogType.SUCCES, 'Succeed save asset to DB');
         print('Succeed save asset to DB');
+        showDialog(DialogType.SUCCES, 'Succeed save asset');
         getMonthList();
       } else {
         print(msg);
@@ -117,8 +118,13 @@ class Database {
     }
   }
 
-  Future<void> deleteDoc(String path) {
+  Future<void> deleteDoc(String path, {bool isLast = false}) {
     DocumentReference ref = _firestore.doc(path);
+    if(isLast) {
+      showDialog(DialogType.SUCCES, 'Succeed delete month');
+      //todo: 페이지 다시 불러오기
+      //getMonthList();
+    }
     return ref.delete()
       .then((value) => print('$path deleted'))
       .catchError((e) => print('failed to delete doc : $path'));
@@ -127,37 +133,16 @@ class Database {
   void deleteMonth(BuildContext context, String month, List<CashAsset> cashList) {
     this.context = context;
     for(CashAsset asset in cashList) {
-      deleteMonthTransaction('$ASSET_MANAGER/$month/$CASH_ASSET/${asset.id}');
+      deleteDoc('$ASSET_MANAGER/$month/$CASH_ASSET/${asset.id}');
     }
     for(CashDetail asset in cashDetailList) {
-      deleteMonthTransaction('$ASSET_MANAGER/$month/$CASH_DETAIL/${asset.id}');
+      deleteDoc('$ASSET_MANAGER/$month/$CASH_DETAIL/${asset.id}');
     }
     for(InvestAsset asset in investList) {
-      deleteMonthTransaction('$ASSET_MANAGER/$month/$INVEST_ASSET/${asset.id}');
+      deleteDoc('$ASSET_MANAGER/$month/$INVEST_ASSET/${asset.id}');
     }
-    deleteMonthTransaction('$ASSET_MANAGER/$month', isLast: true);
+    deleteDoc('$ASSET_MANAGER/$month', isLast: true);
   }
-
-  Future<void> deleteMonthTransaction(String path, {bool? isLast}) {
-    DocumentReference ref = _firestore.doc(path);
-    return _firestore.runTransaction((transaction) async {
-      DocumentSnapshot snapshot = await transaction.get(ref);
-      if(snapshot.exists) {
-        transaction.delete(ref);
-        if(isLast!) {
-          print('Succeed delete month');
-          getMonthList();
-        }
-      } else {
-        print('Not exist $path');
-      }
-      // if(isLast!) {
-      //   showDialog(DialogType.SUCCES, 'Succeed delete month');
-      // }
-    });
-  }
-
-
 
   getLastMonthData() async {
     if(monthList.length < 2) {

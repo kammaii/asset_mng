@@ -9,14 +9,14 @@ import 'cash_detail.dart';
 import 'cash_gap.dart';
 import 'database.dart';
 
-class CashFlow extends StatefulWidget {
-  const CashFlow({Key? key}) : super(key: key);
+class AssetFlow extends StatefulWidget {
+  const AssetFlow({Key? key}) : super(key: key);
 
   @override
-  _CashFlowState createState() => _CashFlowState();
+  _AssetFlowState createState() => _AssetFlowState();
 }
 
-class _CashFlowState extends State<CashFlow> {
+class _AssetFlowState extends State<AssetFlow> {
   static const String CASH_ASSET = 'cashAsset';
   static const String INVEST_ASSET = 'investAsset';
   static const String LAST_CASH = 'lastCash';
@@ -449,9 +449,9 @@ class _CashFlowState extends State<CashFlow> {
                 DataCell(getDropDownButton(cashAssetList[index].assetType, assetTypeDropdownList, (newValue) => cashAssetList[index].assetType = newValue)),
                 DataCell(getDropDownButton(cashAssetList[index].currency, currencyDropdownList, (newValue) => cashAssetList[index].currency = newValue)),
                 DataCell(getTextField(cashAssetList[index].amount, (newValue) => cashAssetList[index].amount = double.parse(newValue.replaceAll(',', '')))),
-                DataCell(Text(f.format(variation))),
+                DataCell(Text(f.format(variation.round()))),
                 DataCell(getTextField(cashAssetList[index].exchangeRate, (newValue) => cashAssetList[index].exchangeRate = double.parse(newValue.replaceAll(',', '')))),
-                DataCell(Text(f.format(cashAssetList[index].amount * cashAssetList[index].exchangeRate))),
+                DataCell(Text(f.format((cashAssetList[index].amount * cashAssetList[index].exchangeRate).round()))),
                 DataCell(IconButton(
                     onPressed: () {
                       setState(() {
@@ -560,9 +560,9 @@ class _CashFlowState extends State<CashFlow> {
                   DataCell(getTextField(investAssetList[index].buyPrice, (newValue) => investAssetList[index].buyPrice = double.parse(newValue.replaceAll(',', '')))),
                   DataCell(getTextField(investAssetList[index].currentPrice, (newValue) => investAssetList[index].currentPrice = double.parse(newValue.replaceAll(',', '')))),
                   DataCell(getTextField(investAssetList[index].quantity, (newValue) => investAssetList[index].quantity = double.parse(newValue.replaceAll(',', '')))),
-                  DataCell(Text(f.format(investAssetList[index].getGrossPurchase()))),
-                  DataCell(Text(f.format(investAssetList[index].getGrossValue()))),
-                  DataCell(Text(f.format(investAssetList[index].getTotalRevenue()))),
+                  DataCell(Text(f.format((investAssetList[index].getGrossPurchase()).round()))),
+                  DataCell(Text(f.format((investAssetList[index].getGrossValue()).round()))),
+                  DataCell(Text(f.format((investAssetList[index].getTotalRevenue()).round()))),
                   DataCell(Text(investAssetList[index].getEarningsRate())),
                   DataCell(getTextField(investAssetList[index].tag, (newValue) => investAssetList[index].tag = newValue)),
                   DataCell(IconButton(
