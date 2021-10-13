@@ -21,7 +21,7 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
 
-  Widget currentPage = AssetFlow();
+  Widget currentPage = MainAssets();
 
   @override
   Widget build(BuildContext context) {
@@ -39,6 +39,7 @@ class _MyAppState extends State<MyApp> {
         bottomNavigationBar: FancyBottomNavigation(
           tabs: [
             TabData(iconData: Icons.attach_money_rounded, title: 'Assets'),
+            TabData(iconData: Icons.waves_rounded, title: 'Asset flow'),
             TabData(iconData: Icons.search, title: 'Search'),
           ],
           onTabChangedListener: (position) {
@@ -46,6 +47,8 @@ class _MyAppState extends State<MyApp> {
               if(position == 0) {
                 currentPage = MainAssets();
               } else if(position == 1) {
+                currentPage = AssetFlow();
+              } else if(position == 2) {
                 currentPage = MainSearch();
               }
             });

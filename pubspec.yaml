@@ -38,6 +38,7 @@ dependencies:
   uuid: 3.0.4
   http: ^0.12.0+4
   html: ^0.14.0+3
+  loading_indicator: ^3.0.2
 
 dev_dependencies:
   flutter_test:

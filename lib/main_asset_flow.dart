@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 import 'cash_detail.dart';
 import 'cash_gap.dart';
 import 'database.dart';
+import 'package:loading_indicator/loading_indicator.dart';
 
 class AssetFlow extends StatefulWidget {
   const AssetFlow({Key? key}) : super(key: key);
@@ -46,6 +47,8 @@ class _AssetFlowState extends State<AssetFlow> {
   double totalInvest = 0;
   double totalAsset = 0;
 
+  bool loading = true;
+
   void initData() {
     assetGoal = 0;
     cashAssetList = [];
@@ -55,6 +58,7 @@ class _AssetFlowState extends State<AssetFlow> {
   }
 
   void setInputModeData() async {
+    loading = true;
     initData();
     await Database().getLastMonthData();
     monthGoal = Database().monthGoal;
@@ -67,10 +71,11 @@ class _AssetFlowState extends State<AssetFlow> {
     for(InvestAsset investAsset in Database().investList) {
       investAssetList.add(investAsset);
     }
-    setState(() {});
+    setState(() {loading = false;});
   }
 
   void setReadModeData() async {
+    loading = true;
     initData();
     int thisMonthIndex = Database().monthList.indexOf(thisMonth);
     await Database().getSpecificMonthData(thisMonth);
@@ -90,7 +95,7 @@ class _AssetFlowState extends State<AssetFlow> {
     for(CashAsset cashAsset in Database().cashList) {
       lastCashAssetList.add(cashAsset);
     }
-    setState(() {});
+    setState(() {loading = false;});
   }
 
   // 현금, 투자 자산 총액 구하기
@@ -156,117 +161,65 @@ class _AssetFlowState extends State<AssetFlow> {
     getTotalAsset();
     checkGap();
 
-
-    return SingleChildScrollView(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20.0, 20.0, 20.0, 100.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                ElevatedButton(
-                    onPressed: () {
-                      setState(() {
-                        thisMonth = '';
-                        newMonth = '';
-                        isInputMode = true;
-                        isModeChanged = true;
-                      });
-                    },
-                    child: Text('입력하기')),
-              ],
-            ),
-            SizedBox(height: 20.0),
-            Row(
-              children: [
-                Text('년/월: '),
-                SizedBox(width: 20),
-                getDropDownButton(thisMonth, Database().monthList, (newValue) {
-                  thisMonth = newValue;
-                  isInputMode = false;
-                  isModeChanged = true;
-                }),
-                SizedBox(width: 20),
-                Visibility(
-                  visible: isInputMode,
-                  child: getTextField(newMonth, (newValue) => newMonth = newValue),
-                ),
-              ],
-            ),
-            SizedBox(height: 20.0),
-            Row(
-              children: [
-                Text('목표:'),
-                SizedBox(width: 20),
-                getTextField(assetGoal, (newValue) => assetGoal = double.parse(newValue.replaceAll(',', ''))),
-                SizedBox(width: 50),
-                Text('원  (월'),
-                SizedBox(width: 10),
-                getTextField(monthGoal, (newValue) {
-                  double newGoal = double.parse(newValue.replaceAll(',', ''));
-                  monthGoal = newGoal;
-                }),
-                SizedBox(width: 5),
-                Text('만원)'),
-              ],
-            ),
-            SizedBox(height: 20),
-            Text('실적:    ${f.format(totalAsset)}   원', textScaleFactor: 1.2),
-            SizedBox(height: 50),
-            Card(
-              elevation: cardElevation,
-              child: Padding(
-                padding: const EdgeInsets.all(cardPadding),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Text('현금현황', textScaleFactor: 2),
-                        SizedBox(width: 20),
-                        Text('(총  ' + f.format(totalCash) + '  원)', textScaleFactor: 1.5)
-                      ],
-                    ),
-                    SizedBox(height: 20),
-                    Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        makeTable(CASH_ASSET),
-                        SizedBox(height: 20),
-                        IconButton(
-                          icon: Icon(Icons.add_circle_outline_rounded, color: Theme.of(context).colorScheme.primary),
-                          onPressed: () {
-                            setState(() {
-                              cashAssetList.add(CashAsset(cashAssetList.length));
-                            });
-                          },
-                        )
-                      ],
-                    )
-                  ],
-                ),
-              ),
-            ),
-            SizedBox(height: 50),
-            Row(
+    return Stack(
+      children: [
+        SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20.0, 20.0, 20.0, 100.0),
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Card(
-                  elevation: cardElevation,
-                  child: Padding(
-                    padding: const EdgeInsets.all(cardPadding),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('전월현금', textScaleFactor: 2),
-                        SizedBox(height: 20),
-                        makeTable(LAST_CASH),
-                      ],
+                Row(
+                  children: [
+                    ElevatedButton(
+                        onPressed: () {
+                          setState(() {
+                            thisMonth = '';
+                            newMonth = '';
+                            isInputMode = true;
+                            isModeChanged = true;
+                          });
+                        },
+                        child: Text('입력하기')),
+                  ],
+                ),
+                SizedBox(height: 20.0),
+                Row(
+                  children: [
+                    Text('년/월: '),
+                    SizedBox(width: 20),
+                    getDropDownButton(thisMonth, Database().monthList, (newValue) {
+                      thisMonth = newValue;
+                      isInputMode = false;
+                      isModeChanged = true;
+                    }),
+                    SizedBox(width: 20),
+                    Visibility(
+                      visible: isInputMode,
+                      child: getTextField(newMonth, (newValue) => newMonth = newValue),
                     ),
-                  ),
+                  ],
+                ),
+                SizedBox(height: 20.0),
+                Row(
+                  children: [
+                    Text('목표:'),
+                    SizedBox(width: 20),
+                    getTextField(assetGoal, (newValue) => assetGoal = double.parse(newValue.replaceAll(',', ''))),
+                    SizedBox(width: 50),
+                    Text('원  (월'),
+                    SizedBox(width: 10),
+                    getTextField(monthGoal, (newValue) {
+                      double newGoal = double.parse(newValue.replaceAll(',', ''));
+                      monthGoal = newGoal;
+                    }),
+                    SizedBox(width: 5),
+                    Text('만원)'),
+                  ],
                 ),
                 SizedBox(height: 20),
+                Text('실적:    ${f.format(totalAsset)}   원', textScaleFactor: 1.2),
+                SizedBox(height: 50),
                 Card(
                   elevation: cardElevation,
                   child: Padding(
@@ -274,120 +227,189 @@ class _AssetFlowState extends State<AssetFlow> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('증감내역', textScaleFactor: 2),
+                        Row(
+                          children: [
+                            Text('현금현황', textScaleFactor: 2),
+                            SizedBox(width: 20),
+                            Text('(총  ' + f.format(totalCash) + '  원)', textScaleFactor: 1.5)
+                          ],
+                        ),
                         SizedBox(height: 20),
                         Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            makeTable(CASH_DETAIL),
+                            makeTable(CASH_ASSET),
                             SizedBox(height: 20),
                             IconButton(
                               icon: Icon(Icons.add_circle_outline_rounded, color: Theme.of(context).colorScheme.primary),
                               onPressed: () {
                                 setState(() {
-                                  cashAssetDetailList.add(CashDetail(cashAssetDetailList.length));
+                                  cashAssetList.add(CashAsset(cashAssetList.length));
                                 });
                               },
                             )
                           ],
-                        ),
+                        )
                       ],
                     ),
                   ),
                 ),
-                SizedBox(width: 50),
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.only(top: 20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('오차', style: TextStyle(color: Colors.grey)),
-                        SizedBox(height: 10),
-                        cashGapList.length > 0 ? ListView.builder(
-                          shrinkWrap: true,
-                          itemCount: cashGapList.length,
-                          itemBuilder: (BuildContext context, int index) {
-                            return Row(
-                              children: [
-                                Text(cashGapList[index].assetType),
-                                SizedBox(width: 10),
-                                Text(cashGapList[index].currency),
-                                SizedBox(width: 10),
-                                Text(f.format(cashGapList[index].gap))
-                              ],
-                            );
-                          },
-                        ) : Text(''),
-                      ]
-                    ),
-                  ),
-                )
-              ],
-            ),
-            SizedBox(height: 50),
-            Card(
-              elevation: cardElevation,
-              child: Padding(
-                padding: const EdgeInsets.all(cardPadding),
-                child: Column(
+                SizedBox(height: 50),
+                Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        Text('투자현황', textScaleFactor: 2),
-                        SizedBox(width: 20),
-                        Text('(총  ' + f.format(totalInvest) + '  원)', textScaleFactor: 1.5)
-                      ],
+                    Card(
+                      elevation: cardElevation,
+                      child: Padding(
+                        padding: const EdgeInsets.all(cardPadding),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('전월현금', textScaleFactor: 2),
+                            SizedBox(height: 20),
+                            makeTable(LAST_CASH),
+                          ],
+                        ),
+                      ),
                     ),
                     SizedBox(height: 20),
-                    Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        makeTable(INVEST_ASSET),
-                        SizedBox(height: 20),
-                        IconButton(
-                          icon: Icon(Icons.add_circle_outline_rounded, color: Theme.of(context).colorScheme.primary),
-                          onPressed: () {
-                            setState(() {
-                              investAssetList.add(InvestAsset(investAssetList.length));
-                            });
-                          },
-                        )
-                      ],
+                    Card(
+                      elevation: cardElevation,
+                      child: Padding(
+                        padding: const EdgeInsets.all(cardPadding),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('증감내역', textScaleFactor: 2),
+                            SizedBox(height: 20),
+                            Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                makeTable(CASH_DETAIL),
+                                SizedBox(height: 20),
+                                IconButton(
+                                  icon: Icon(Icons.add_circle_outline_rounded, color: Theme.of(context).colorScheme.primary),
+                                  onPressed: () {
+                                    setState(() {
+                                      cashAssetDetailList.add(CashDetail(cashAssetDetailList.length));
+                                    });
+                                  },
+                                )
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: 50),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 20),
+                        child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('오차', style: TextStyle(color: Colors.grey)),
+                              SizedBox(height: 10),
+                              cashGapList.length > 0 ? ListView.builder(
+                                shrinkWrap: true,
+                                itemCount: cashGapList.length,
+                                itemBuilder: (BuildContext context, int index) {
+                                  return Row(
+                                    children: [
+                                      Text(cashGapList[index].assetType),
+                                      SizedBox(width: 10),
+                                      Text(cashGapList[index].currency),
+                                      SizedBox(width: 10),
+                                      Text(f.format(cashGapList[index].gap))
+                                    ],
+                                  );
+                                },
+                              ) : Text(''),
+                            ]
+                        ),
+                      ),
                     )
                   ],
                 ),
-              ),
+                SizedBox(height: 50),
+                Card(
+                  elevation: cardElevation,
+                  child: Padding(
+                    padding: const EdgeInsets.all(cardPadding),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Text('투자현황', textScaleFactor: 2),
+                            SizedBox(width: 20),
+                            Text('(총  ' + f.format(totalInvest) + '  원)', textScaleFactor: 1.5)
+                          ],
+                        ),
+                        SizedBox(height: 20),
+                        Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            makeTable(INVEST_ASSET),
+                            SizedBox(height: 20),
+                            IconButton(
+                              icon: Icon(Icons.add_circle_outline_rounded, color: Theme.of(context).colorScheme.primary),
+                              onPressed: () {
+                                setState(() {
+                                  investAssetList.add(InvestAsset(investAssetList.length));
+                                });
+                              },
+                            )
+                          ],
+                        )
+                      ],
+                    ),
+                  ),
+                ),
+                SizedBox(height: 20),
+                Padding(
+                  padding: const EdgeInsets.all(10),
+                  child: Row(
+                    children: [
+                      getDialog('저장하기', '저장할까요?', Colors.blue, (){
+                        String month;
+                        isInputMode? month = newMonth : month = thisMonth;
+                        if(month.isNotEmpty) {
+                          Database().saveAsset(context, isInputMode, month, assetGoal, monthGoal, cashAssetList, cashAssetDetailList, investAssetList);
+                        } else {
+                          showAlert('년/월을 입력하세요.');
+                        }
+                      }),
+                      SizedBox(width: 20),
+                      getDialog('삭제하기', '삭제할까요?', Colors.red, (){
+                        if(isInputMode) {
+                          showAlert('입력 모드에서는 삭제할 수 없습니다.');
+                        } else {
+                          Database().deleteMonth(context, thisMonth, cashAssetList);
+                        }
+                      })
+                    ],
+                  ),
+                ),
+              ],
             ),
-            SizedBox(height: 20),
-            Padding(
-              padding: const EdgeInsets.all(10),
-              child: Row(
-                children: [
-                  getDialog('저장하기', '저장할까요?', Colors.blue, (){
-                    String month;
-                    isInputMode? month = newMonth : month = thisMonth;
-                    if(month.isNotEmpty) {
-                      Database().saveAsset(context, isInputMode, month, assetGoal, monthGoal, cashAssetList, cashAssetDetailList, investAssetList);
-                    } else {
-                      showAlert('년/월을 입력하세요.');
-                    }
-                  }),
-                  SizedBox(width: 20),
-                  getDialog('삭제하기', '삭제할까요?', Colors.red, (){
-                    if(isInputMode) {
-                      showAlert('입력 모드에서는 삭제할 수 없습니다.');
-                    } else {
-                      Database().deleteMonth(context, thisMonth, cashAssetList);
-                    }
-                  })
-                ],
-              ),
-            ),
-          ],
+          ),
         ),
-      ),
+        Visibility(
+          visible: loading,
+          child: Align(
+            alignment: Alignment.center,
+            child: Container(
+              height: 100,
+              width: 100,
+              child: LoadingIndicator(
+                colors: [Colors.red, Colors.orange, Colors.yellow, Colors.green, Colors.blue, Colors.purple],
+                indicatorType: Indicator.ballSpinFadeLoader,
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
