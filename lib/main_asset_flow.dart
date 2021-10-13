@@ -229,7 +229,7 @@ class _AssetFlowState extends State<AssetFlow> {
                       children: [
                         Row(
                           children: [
-                            Text('현금현황', textScaleFactor: 2),
+                            Text('생활비현황', textScaleFactor: 2),
                             SizedBox(width: 20),
                             Text('(총  ' + f.format(totalCash) + '  원)', textScaleFactor: 1.5)
                           ],
@@ -265,7 +265,7 @@ class _AssetFlowState extends State<AssetFlow> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('전월현금', textScaleFactor: 2),
+                            Text('전월생활비', textScaleFactor: 2),
                             SizedBox(height: 20),
                             makeTable(LAST_CASH),
                           ],
