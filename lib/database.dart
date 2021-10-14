@@ -1,5 +1,6 @@
 import 'package:asset_mng/cash_detail.dart';
 import 'package:asset_mng/invest_asset.dart';
+import 'package:asset_mng/pension_asset.dart';
 import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
@@ -23,29 +24,45 @@ class Database {
   static const CASH_ASSET = 'cashAsset';
   static const CASH_DETAIL = 'cashDetail';
   static const INVEST_ASSET = 'investAsset';
+  static const PENSION_ASSET = 'pensionAsset';
   static const GOAL_ASSET = 'goalAsset';
+  static const TOTAL_ASSET = 'totalAsset';
+  static const TOTAL_CASH = 'totalCash';
+  static const TOTAL_INVEST = 'totalInvest';
+  static const TOTAL_PENSION = 'totalPension';
   static const MONTHLY_GOAL = 'monthlyGoal';
+  static const MONTH = 'month';
 
   late BuildContext context;
   late String folder;
   late dynamic data;
   late String msg;
   List<String> monthList = [''];
+  List<double> totalAssetList = [];
+  List<double> goalAssetList = [];
+  List<double> totalCashAssetList = [];
+  List<double> totalInvestAssetList = [];
+  List<double> totalPensionAssetList = [];
+
   double monthGoal = 0;
   List<CashAsset> cashList = [];
   List<CashDetail> cashDetailList = [];
   List<InvestAsset> investList = [];
+  List<PensionAsset> pensionList = [];
   double assetGoal = 0;
 
   late List<String> cashIdList;
   late List<String> cashDetailIdList;
   late List<String> investIdList;
+  late List<String> pensionIdList;
 
-  void saveAsset(BuildContext context, bool isInputMode, String month, double assetGoal, double monthGoal, List<CashAsset> cashAsset, List<CashDetail> cashDetail, List<InvestAsset> investAsset) {
+
+  void saveAsset(BuildContext context,bool isInputMode,String month,double assetGoal,double monthGoal,List<CashAsset> cashAsset,List<CashDetail> cashDetail,List<InvestAsset> investAsset,List<PensionAsset> pensionAsset, double totalAsset,double totalCash,double totalInvest,double totalPension) {
     this.context = context;
     cashIdList = [];
     cashDetailIdList = [];
     investIdList = [];
+    pensionIdList = [];
 
     // 현금자산 저장
     for(CashAsset cashAsset in cashAsset) {
@@ -65,8 +82,21 @@ class Database {
       saveDB('$ASSET_MANAGER/$month/$INVEST_ASSET/${investAsset.id}', investAsset.toJson(), 'Invest ${investAsset.item} added');
     }
 
-    // 목표금액 저장
-    saveDB('$ASSET_MANAGER/$month', {'$GOAL_ASSET' : assetGoal}, 'Goal $assetGoal 원 added', isLast: true, isInput: isInputMode, month: month);
+    // 연금자산 저장
+    for(PensionAsset pensionAsset in pensionAsset) {
+      pensionIdList.add(pensionAsset.id);
+      saveDB('$ASSET_MANAGER/$month/$PENSION_ASSET/${pensionAsset.id}', pensionAsset.toJson(), 'Pension ${pensionAsset.item} added');
+    }
+
+    // 토탈금액 저장
+    Map<String, double> totalData = {
+      '$GOAL_ASSET':assetGoal,
+      '$TOTAL_ASSET':totalAsset,
+      '$TOTAL_CASH':totalCash,
+      '$TOTAL_INVEST':totalInvest,
+      '$TOTAL_PENSION':totalPension
+    };
+    saveDB('$ASSET_MANAGER/$month', totalData, 'Goal $assetGoal 원 added', isLast: true, isInput: isInputMode, month: month);
 
     // 월목표금액 저장
     setMonthlyGoal(monthGoal);
@@ -80,10 +110,9 @@ class Database {
         if(!isInput!) {
           checkRemovedDoc(month!);
         }
-        //showDialog(DialogType.SUCCES, 'Succeed save asset to DB');
         print('Succeed save asset to DB');
         showDialog(DialogType.SUCCES, 'Succeed save asset');
-        getMonthList();
+        getInitList();
       } else {
         print(msg);
       }
@@ -145,9 +174,6 @@ class Database {
   }
 
   getLastMonthData() async {
-    if(monthList.length < 2) {
-      await getMonthList();
-    }
     await getMonthGoal();
     await getSpecificMonthData(monthList.last);
   }
@@ -157,20 +183,33 @@ class Database {
     await getCashAsset(month);
     await getCashAssetDetail(month);
     await getInvestAsset(month);
+    await getPensionAsset(month);
   }
 
-  Future<void> getMonthList() {
+  Future<void> getInitList() {
     monthList = [''];
     CollectionReference ref = _firestore.collection(ASSET_MANAGER);
     return ref.get().then((QuerySnapshot querySnapshot) {
       if(querySnapshot.size != 0) {
-        List<double> d = [];
+        List<Map<String, dynamic>> mapList = [];
         querySnapshot.docs.forEach((doc) {
-          d.add(double.parse(doc.id));
+          mapList.add({
+            MONTH : double.parse(doc.id),
+            TOTAL_ASSET : doc[TOTAL_ASSET],
+            GOAL_ASSET : doc[GOAL_ASSET],
+            TOTAL_CASH : doc[TOTAL_CASH],
+            TOTAL_INVEST : doc[TOTAL_INVEST],
+            TOTAL_PENSION : doc[TOTAL_PENSION],
+          });
         });
-        d.sort((a,b) => a.compareTo(b));
-        for(double dd in d) {
-          monthList.add(dd.toStringAsFixed(2));
+        mapList.sort((a,b) => (a[MONTH]).compareTo(b[MONTH]));
+        for(Map<String,dynamic> map in mapList) {
+          monthList.add(map[MONTH].toStringAsFixed(2));
+          totalAssetList.add(map[TOTAL_ASSET]);
+          goalAssetList.add(map[GOAL_ASSET]);
+          totalCashAssetList.add(map[TOTAL_CASH]);
+          totalInvestAssetList.add(map[TOTAL_INVEST]);
+          totalPensionAssetList.add(map[TOTAL_PENSION]);
         }
       }
     }).catchError((e) => print('ERROR : $e'));
@@ -196,7 +235,6 @@ class Database {
 
   Future<void> getCashAsset(String date) async {
     cashList = [];
-    print(date);
     CollectionReference ref = _firestore.collection('$ASSET_MANAGER/$date/$CASH_ASSET');
     return ref.get().then((QuerySnapshot snapshot) {
       snapshot.docs.forEach((element) {
@@ -231,6 +269,19 @@ class Database {
       investList.sort((a,b) => a.no.compareTo(b.no));
     });
   }
+
+  Future<void> getPensionAsset(String date) async {
+    pensionList = [];
+    CollectionReference ref = _firestore.collection('$ASSET_MANAGER/$date/$PENSION_ASSET');
+    return ref.get().then((QuerySnapshot snapshot) {
+      snapshot.docs.forEach((element) {
+        Map<String, dynamic> data = element.data() as Map<String, dynamic>;
+        pensionList.add(PensionAsset.fromJson(data));
+      });
+      pensionList.sort((a,b) => a.no.compareTo(b.no));
+    });
+  }
+
 
   void setMonthlyGoal(double monthlyGoal) async {
     SharedPreferences preferences = await SharedPreferences.getInstance();

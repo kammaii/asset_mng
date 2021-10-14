@@ -1,5 +1,6 @@
 import 'package:asset_mng/cash_asset.dart';
 import 'package:asset_mng/invest_asset.dart';
+import 'package:asset_mng/pension_asset.dart';
 import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -20,12 +21,12 @@ class AssetFlow extends StatefulWidget {
 class _AssetFlowState extends State<AssetFlow> {
   static const String CASH_ASSET = 'cashAsset';
   static const String INVEST_ASSET = 'investAsset';
+  static const String PENSION_ASSET = 'pensionAsset';
   static const String LAST_CASH = 'lastCash';
   static const String CASH_DETAIL = 'cashDetail';
 
   String thisMonth = '';
   String newMonth = '';
-  List<String> assetTypeDropdownList = ['투자자산', '연금자산', '생활비']; // todo: 입력받을 수 있는 기능 만들기
   List<String> currencyDropdownList = ['원', '달러', '바트']; // todo: 입력받을 수 있는 기능 만들기
 
   var f = NumberFormat('###,###,###,###.##');
@@ -37,6 +38,7 @@ class _AssetFlowState extends State<AssetFlow> {
   late List<CashAsset> cashAssetList;
   late List<CashDetail> cashAssetDetailList;
   late List<InvestAsset> investAssetList;
+  late List<PensionAsset> pensionAssetList;
   late List<CashAsset> lastCashAssetList;
   late List<CashGap> cashGapList;
 
@@ -45,9 +47,13 @@ class _AssetFlowState extends State<AssetFlow> {
 
   double totalCash = 0;
   double totalInvest = 0;
+  double totalPension = 0;
   double totalAsset = 0;
 
   bool loading = true;
+  bool isChecked = false;
+  double investTax = 0;
+  Map<String, double> exchangeRate = {};
 
   void initData() {
     assetGoal = 0;
@@ -55,6 +61,14 @@ class _AssetFlowState extends State<AssetFlow> {
     cashAssetDetailList = [];
     lastCashAssetList = [];
     investAssetList = [];
+    pensionAssetList = [];
+  }
+
+  void getExchangeRate() {
+    exchangeRate.clear();
+    for(CashAsset asset in cashAssetList) {
+      exchangeRate[asset.currency] = asset.exchangeRate;
+    }
   }
 
   void setInputModeData() async {
@@ -70,6 +84,9 @@ class _AssetFlowState extends State<AssetFlow> {
     }
     for(InvestAsset investAsset in Database().investList) {
       investAssetList.add(investAsset);
+    }
+    for(PensionAsset pensionAsset in Database().pensionList) {
+      pensionAssetList.add(pensionAsset);
     }
     setState(() {loading = false;});
   }
@@ -89,6 +106,9 @@ class _AssetFlowState extends State<AssetFlow> {
     for(InvestAsset investAsset in Database().investList) {
       investAssetList.add(investAsset);
     }
+    for(PensionAsset pensionAsset in Database().pensionList) {
+      pensionAssetList.add(pensionAsset);
+    }
     if(Database().monthList[thisMonthIndex - 1] != '') {
       await Database().getCashAsset(Database().monthList[thisMonthIndex - 1]);
     }
@@ -102,18 +122,28 @@ class _AssetFlowState extends State<AssetFlow> {
   void getTotalAsset() {
     totalCash = 0;
     totalInvest = 0;
-    Map<String, double> exchangeRate = Map(); //todo: 환율정보를 DB에서 가져오는 것으로 수정할 것!!!
+    totalPension = 0;
     for(CashAsset cashAsset in cashAssetList) {
       totalCash += cashAsset.amount * cashAsset.exchangeRate;
-      exchangeRate[cashAsset.currency] = cashAsset.exchangeRate;
     }
     for(InvestAsset investAsset in investAssetList) {
       double rate = exchangeRate[investAsset.currency]!.toDouble();
       totalInvest += (investAsset.getGrossValue() * rate);
     }
+    totalInvest -= investTax;
+    for(PensionAsset pensionAsset in pensionAssetList) {
+      totalPension += pensionAsset.currentPrice;
+    }
+
     totalCash = totalCash.ceilToDouble();
     totalInvest = totalInvest.ceilToDouble();
-    totalAsset = totalCash + totalInvest;
+    totalPension = totalPension.ceilToDouble();
+
+    if(isChecked) {
+      totalAsset = totalCash + totalInvest + totalPension;
+    } else {
+      totalAsset = totalCash + totalInvest;
+    }
   }
 
   void checkGap() {
@@ -121,21 +151,21 @@ class _AssetFlowState extends State<AssetFlow> {
     for(CashAsset cashAsset in cashAssetList) {
       double gap = cashAsset.amount;
       for (CashAsset lastCashAsset in lastCashAssetList) {
-        if(cashAsset.assetType == lastCashAsset.assetType && cashAsset.currency == lastCashAsset.currency) {
+        if(cashAsset.currency == lastCashAsset.currency) {
           gap -= lastCashAsset.amount;
         }
       }
       for(CashDetail cashDetail in cashAssetDetailList) {
-        if(cashAsset.assetType == cashDetail.assetType && cashAsset.currency == cashDetail.currency) {
+        if(cashAsset.currency == cashDetail.currency) {
           gap -= cashDetail.amount;
         }
       }
-      cashGapList.add(CashGap(cashAsset.assetType, cashAsset.currency, gap));
+      cashGapList.add(CashGap(cashAsset.currency, gap));
     }
     for(CashAsset lastCashAsset in lastCashAssetList) {
       bool hasExhaustedCash = true;
       for(CashAsset cashAsset in cashAssetList) {
-        if(lastCashAsset.assetType == cashAsset.assetType && lastCashAsset.currency == cashAsset.currency) {
+        if(lastCashAsset.currency == cashAsset.currency) {
           hasExhaustedCash = false;
           break;
         }
@@ -143,12 +173,30 @@ class _AssetFlowState extends State<AssetFlow> {
       if(hasExhaustedCash) {
         double gap = lastCashAsset.amount;
         for(CashDetail cashDetail in cashAssetDetailList) {
-          if(lastCashAsset.assetType == cashDetail.assetType && lastCashAsset.currency == cashDetail.currency) {
+          if(lastCashAsset.currency == cashDetail.currency) {
             gap += cashDetail.amount;
           }
         }
-        cashGapList.add(CashGap(lastCashAsset.assetType, lastCashAsset.currency, gap));
+        cashGapList.add(CashGap(lastCashAsset.currency, gap));
       }
+    }
+  }
+
+  void checkInvestTax() {
+    const String DOLLOR = '달러';
+    investTax = 0;
+    for(InvestAsset asset in investAssetList) {
+      if(asset.currency == DOLLOR) {
+        investTax += asset.getTotalRevenue();
+      }
+    }
+    if(exchangeRate.containsKey(DOLLOR)) {
+      investTax *= exchangeRate[DOLLOR]!.toDouble();
+    }
+    if(investTax > 2500000) {
+      investTax = (investTax - 2500000) * 0.22;
+    } else {
+      investTax = 0;
     }
   }
 
@@ -158,6 +206,8 @@ class _AssetFlowState extends State<AssetFlow> {
       isInputMode ? setInputModeData() : setReadModeData();
       isModeChanged = false;
     }
+    getExchangeRate();
+    checkInvestTax();
     getTotalAsset();
     checkGap();
 
@@ -218,7 +268,26 @@ class _AssetFlowState extends State<AssetFlow> {
                   ],
                 ),
                 SizedBox(height: 20),
-                Text('실적:    ${f.format(totalAsset)}   원', textScaleFactor: 1.2),
+                Row(
+                  children: [
+                    Text('실적:    ${f.format(totalAsset)}   원', textScaleFactor: 1.2),
+                    SizedBox(width: 30),
+                    Row(
+                      children: [
+                        Checkbox(
+                          value: isChecked,
+                          onChanged: (bool? value) {
+                            setState(() {
+                              isChecked = value!;
+                            });
+                          },
+                        ),
+                        SizedBox(width: 10),
+                        Text('연금포함')
+                      ],
+                    )
+                  ],
+                ),
                 SizedBox(height: 50),
                 Card(
                   elevation: cardElevation,
@@ -229,7 +298,7 @@ class _AssetFlowState extends State<AssetFlow> {
                       children: [
                         Row(
                           children: [
-                            Text('생활비현황', textScaleFactor: 2),
+                            Text('생활비 현황', textScaleFactor: 2),
                             SizedBox(width: 20),
                             Text('(총  ' + f.format(totalCash) + '  원)', textScaleFactor: 1.5)
                           ],
@@ -265,7 +334,7 @@ class _AssetFlowState extends State<AssetFlow> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('전월생활비', textScaleFactor: 2),
+                            Text('전월 생활비', textScaleFactor: 2),
                             SizedBox(height: 20),
                             makeTable(LAST_CASH),
                           ],
@@ -316,8 +385,6 @@ class _AssetFlowState extends State<AssetFlow> {
                                 itemBuilder: (BuildContext context, int index) {
                                   return Row(
                                     children: [
-                                      Text(cashGapList[index].assetType),
-                                      SizedBox(width: 10),
                                       Text(cashGapList[index].currency),
                                       SizedBox(width: 10),
                                       Text(f.format(cashGapList[index].gap))
@@ -343,7 +410,9 @@ class _AssetFlowState extends State<AssetFlow> {
                           children: [
                             Text('투자현황', textScaleFactor: 2),
                             SizedBox(width: 20),
-                            Text('(총  ' + f.format(totalInvest) + '  원)', textScaleFactor: 1.5)
+                            Text('(총  ' + f.format(totalInvest) + '  원)', textScaleFactor: 1.5),
+                            SizedBox(width: 20),
+                            Text('*미국주식세금  ' + f.format(investTax.ceilToDouble()) + '  원 제외')
                           ],
                         ),
                         SizedBox(height: 20),
@@ -366,6 +435,41 @@ class _AssetFlowState extends State<AssetFlow> {
                     ),
                   ),
                 ),
+                SizedBox(height: 50),
+                Card(
+                  elevation: cardElevation,
+                  child: Padding(
+                    padding: const EdgeInsets.all(cardPadding),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Text('연금현황', textScaleFactor: 2),
+                            SizedBox(width: 20),
+                            Text('(총  ' + f.format(totalPension) + '  원)', textScaleFactor: 1.5)
+                          ],
+                        ),
+                        SizedBox(height: 20),
+                        Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            makeTable(PENSION_ASSET),
+                            SizedBox(height: 20),
+                            IconButton(
+                              icon: Icon(Icons.add_circle_outline_rounded, color: Theme.of(context).colorScheme.primary),
+                              onPressed: () {
+                                setState(() {
+                                  pensionAssetList.add(PensionAsset(pensionAssetList.length));
+                                });
+                              },
+                            )
+                          ],
+                        )
+                      ],
+                    ),
+                  ),
+                ),
                 SizedBox(height: 20),
                 Padding(
                   padding: const EdgeInsets.all(10),
@@ -375,7 +479,10 @@ class _AssetFlowState extends State<AssetFlow> {
                         String month;
                         isInputMode? month = newMonth : month = thisMonth;
                         if(month.isNotEmpty) {
-                          Database().saveAsset(context, isInputMode, month, assetGoal, monthGoal, cashAssetList, cashAssetDetailList, investAssetList);
+                          Database().saveAsset(context, isInputMode, month, assetGoal, monthGoal,
+                            cashAssetList, cashAssetDetailList, investAssetList, pensionAssetList,
+                            totalAsset, totalCash, totalInvest, totalPension
+                          );
                         } else {
                           showAlert('년/월을 입력하세요.');
                         }
@@ -457,18 +564,17 @@ class _AssetFlowState extends State<AssetFlow> {
 
     switch (type) {
       case CASH_ASSET :
-        List<String> columns = ['자산타입','통화','금액','증가액','환율','원화환산','',''];
+        List<String> columns = ['통화','금액','증가액','환율','원화환산','',''];
         dataColumn = List<DataColumn>.generate(columns.length, (index) => DataColumn(label: Text(columns[index])));
         dataRow = List<DataRow>.generate(cashAssetList.length, (index) {
           double variation = cashAssetList[index].amount;
           for(CashAsset lastCashAsset in lastCashAssetList) {
-            if(lastCashAsset.assetType == cashAssetList[index].assetType && lastCashAsset.currency == cashAssetList[index].currency) {
+            if(lastCashAsset.currency == cashAssetList[index].currency) {
               variation = cashAssetList[index].amount - lastCashAsset.amount;
             }
           }
           return DataRow(
               cells: [
-                DataCell(getDropDownButton(cashAssetList[index].assetType, assetTypeDropdownList, (newValue) => cashAssetList[index].assetType = newValue)),
                 DataCell(getDropDownButton(cashAssetList[index].currency, currencyDropdownList, (newValue) => cashAssetList[index].currency = newValue)),
                 DataCell(getTextField(cashAssetList[index].amount, (newValue) => cashAssetList[index].amount = double.parse(newValue.replaceAll(',', '')))),
                 DataCell(Text(f.format(variation.round()))),
@@ -511,12 +617,11 @@ class _AssetFlowState extends State<AssetFlow> {
         break;
 
       case LAST_CASH :
-        List<String> columns = ['자산타입','통화','금액'];
+        List<String> columns = ['통화','금액'];
         dataColumn = List<DataColumn>.generate(columns.length, (index) => DataColumn(label: Text(columns[index])));
         dataRow = List<DataRow>.generate(lastCashAssetList.length, (index) =>
             DataRow(
                 cells: [
-                  DataCell(Text(lastCashAssetList[index].assetType)),
                   DataCell(Text(lastCashAssetList[index].currency)),
                   DataCell(Text(f.format(lastCashAssetList[index].amount))),
                 ]
@@ -525,12 +630,11 @@ class _AssetFlowState extends State<AssetFlow> {
         break;
 
       case CASH_DETAIL :
-        List<String> columns = ['자산타입','통화','금액','내용','',''];
+        List<String> columns = ['통화','금액','내용','',''];
         dataColumn = List<DataColumn>.generate(columns.length, (index) => DataColumn(label: Text(columns[index])));
         dataRow = List<DataRow>.generate(cashAssetDetailList.length, (index) =>
             DataRow(
                 cells: [
-                  DataCell(getDropDownButton(cashAssetDetailList[index].assetType, assetTypeDropdownList, (newValue) => cashAssetDetailList[index].assetType = newValue)),
                   DataCell(getDropDownButton(cashAssetDetailList[index].currency, currencyDropdownList, (newValue) => cashAssetDetailList[index].currency = newValue)),
                   DataCell(getTextField(cashAssetDetailList[index].amount, (newValue) => cashAssetDetailList[index].amount = double.parse(newValue.replaceAll(',', '')))),
                   DataCell(getTextField(cashAssetDetailList[index].note, (newValue) => cashAssetDetailList[index].note = newValue)),
@@ -571,12 +675,11 @@ class _AssetFlowState extends State<AssetFlow> {
         break;
 
       case INVEST_ASSET :
-        List<String> columns = ['자산타입','통화','종목','매수가','현재가', '수량', '매입총액', '평가액' ,'수익', '수익률', '태그','',''];
+        List<String> columns = ['통화','종목','매수가','현재가', '수량', '매입총액', '평가액' ,'수익', '수익률', '태그','',''];
         dataColumn = List<DataColumn>.generate(columns.length, (index) => DataColumn(label: Text(columns[index])));
         dataRow = List<DataRow>.generate(investAssetList.length, (index) =>
             DataRow(
                 cells: [
-                  DataCell(getDropDownButton(investAssetList[index].assetType, assetTypeDropdownList, (newValue) => investAssetList[index].assetType = newValue)),
                   DataCell(getDropDownButton(investAssetList[index].currency, currencyDropdownList, (newValue) => investAssetList[index].currency = newValue)),
                   DataCell(getTextField(investAssetList[index].item, (newValue) => investAssetList[index].item = newValue)),
                   DataCell(getTextField(investAssetList[index].buyPrice, (newValue) => investAssetList[index].buyPrice = double.parse(newValue.replaceAll(',', '')))),
@@ -615,6 +718,54 @@ class _AssetFlowState extends State<AssetFlow> {
                         InvestAsset asset = investAssetList[index];
                         investAssetList.removeAt(index);
                         investAssetList.insert(index+1, asset);
+                      });
+                    }
+                  }))
+                ]
+            )
+        );
+        break;
+
+      case PENSION_ASSET :
+        List<String> columns = ['종목','매수액','평가액','수익', '수익률', '태그','',''];
+        dataColumn = List<DataColumn>.generate(columns.length, (index) => DataColumn(label: Text(columns[index])));
+        dataRow = List<DataRow>.generate(pensionAssetList.length, (index) =>
+            DataRow(
+                cells: [
+                  DataCell(getTextField(pensionAssetList[index].item, (newValue) => pensionAssetList[index].item = newValue)),
+                  DataCell(getTextField(pensionAssetList[index].buyPrice, (newValue) => pensionAssetList[index].buyPrice = double.parse(newValue.replaceAll(',', '')))),
+                  DataCell(getTextField(pensionAssetList[index].currentPrice, (newValue) => pensionAssetList[index].currentPrice = double.parse(newValue.replaceAll(',', '')))),
+                  DataCell(Text(f.format((pensionAssetList[index].getTotalRevenue()).round()))),
+                  DataCell(Text(pensionAssetList[index].getEarningsRate())),
+                  DataCell(getTextField(pensionAssetList[index].tag, (newValue) => pensionAssetList[index].tag = newValue)),
+                  DataCell(IconButton(
+                      onPressed: () {
+                        setState(() {
+                          pensionAssetList.removeAt(index);
+                          for(int i=index; i<pensionAssetList.length; i++) {
+                            pensionAssetList[i].no--;
+                          }
+                        });
+                      },
+                      icon: Icon(Icons.cancel_outlined, color: Colors.red))
+                  ),
+                  DataCell(getIndexEdit(index, (isUpside) {
+                    if(isUpside && index != 0) {
+                      setState(() {
+                        pensionAssetList[index].no--;
+                        pensionAssetList[index - 1].no++;
+                        PensionAsset asset = pensionAssetList[index];
+                        pensionAssetList.removeAt(index);
+                        pensionAssetList.insert(index-1, asset);
+                      });
+
+                    } else if(!isUpside && index != pensionAssetList.length-1) {
+                      setState(() {
+                        pensionAssetList[index].no++;
+                        pensionAssetList[index + 1].no--;
+                        PensionAsset asset = pensionAssetList[index];
+                        pensionAssetList.removeAt(index);
+                        pensionAssetList.insert(index+1, asset);
                       });
                     }
                   }))

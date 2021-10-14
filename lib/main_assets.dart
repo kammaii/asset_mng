@@ -1,6 +1,10 @@
+import 'package:asset_mng/cash_asset.dart';
+import 'package:asset_mng/invest_asset.dart';
+import 'package:asset_mng/pension_asset.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:intl/intl.dart';
 
 import 'database.dart';
 
@@ -12,6 +16,7 @@ class MainAssets extends StatefulWidget {
 }
 
 class _MainAssetsState extends State<MainAssets> {
+  var f = NumberFormat('###,###,###,###.##');
   double circleChartRadius = 80.0;
   late int touchedIndex = -1;
   List<Color> chartColors = [Color(0xff6E8DFA),Color(0xffBBFA56),Color(0xffFA6248),Color(0xffFACB48),Color(0xff61FAB7),Color(0xffFA7F9E),Color(0xff5CDDFA),Color(0xffFAE443),Color(0xff50FA68),Color(0xff8269FA)];
@@ -22,56 +27,79 @@ class _MainAssetsState extends State<MainAssets> {
     const Color(0xff02d39a),
   ];
   String thisMonth = '';
-  bool isMonthChanged = true;
+  bool isMonthChanged = false;
+  bool isInitState = false;
 
-  void getMonthList() async {
-    await Database().getMonthList();
+  // 월리스트, 총액리스트, 목표리스트
+  getInitList() async {
+    await Database().getInitList();
     thisMonth = Database().monthList.last;
   }
 
-  void getTotalAssetValues() async {
-    //todo: 모든 달의 총액을가져옴
-  }
-
-  void getAssetData() async {
+  getAssetData() async {
     await Database().getSpecificMonthData(thisMonth);
   }
 
+  Future<void> getData() async {
+    if(isInitState) {
+      await getInitList();
+      isInitState = false;
+    }
+    await getAssetData();
+  }
 
   @override
   void initState() {
     super.initState();
-    getMonthList();
-    getTotalAssetValues();
+    isInitState = true;
   }
 
   @override
   Widget build(BuildContext context) {
-    if(isMonthChanged) {
-      getAssetData();
-      isMonthChanged = false;
-    }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
-          child: getDropDownButton(thisMonth, Database().monthList, (newValue) {
-            thisMonth = newValue;
-            isMonthChanged = true;
-          }),
-        ),
-        Row(
+    return FutureBuilder(
+      future: getData(),
+      builder: (ctx, snapShot) {
+        List<String> assetChartTitle = [];
+        List<double> assetChartValue = [];
+        int index = Database().monthList.indexOf(thisMonth)-1;
+        if(index >= 0) {
+          double totalAsset = Database().totalAssetList[index];
+          double totalCash = Database().totalCashAssetList[index];
+          double totalInvest = Database().totalInvestAssetList[index];
+          double totalPension = Database().totalPensionAssetList[index];
+          assetChartTitle.add('생활비  (${f.format(Database().totalCashAssetList[index])} 원)');
+          assetChartTitle.add('투자    (${f.format(Database().totalInvestAssetList[index])} 원)');
+          assetChartTitle.add('연금    (${f.format(Database().totalPensionAssetList[index])} 원)');
+          assetChartValue.add(double.parse((totalCash/totalAsset*100).toStringAsFixed(1)));
+          assetChartValue.add(double.parse((totalInvest/totalAsset*100).toStringAsFixed(1)));
+          assetChartValue.add(double.parse((totalPension/totalAsset*100).toStringAsFixed(1)));
+          print(totalCash/totalAsset*100);
+          print(totalInvest/totalAsset*100);
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            getCircleChart(testTitleList, testValueList),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
+              child: getDropDownButton(thisMonth, Database().monthList, (newValue) {
+                thisMonth = newValue;
+                getData();
+              }),
+            ),
+            Row(
+              children: [
+                getCircleChart(assetChartTitle, assetChartValue),
+              ],
+            ),
+            SizedBox(height: 10.0),
+            Expanded(
+                child: getLineChart()
+            )
           ],
-        ),
-        SizedBox(height: 10.0),
-        Expanded(
-          child: getLineChart()
-        )
-      ],
+        );
+      },
     );
   }
 
