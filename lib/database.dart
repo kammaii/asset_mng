@@ -32,12 +32,15 @@ class Database {
   static const TOTAL_PENSION = 'totalPension';
   static const MONTHLY_GOAL = 'monthlyGoal';
   static const MONTH = 'month';
+  static const CURRENCY = 'currency';
+
 
   late BuildContext context;
   late String folder;
   late dynamic data;
   late String msg;
   List<String> monthList = [''];
+  List<String> currencyList = [];
   List<double> totalAssetList = [];
   List<double> goalAssetList = [];
   List<double> totalCashAssetList = [];
@@ -186,7 +189,8 @@ class Database {
     await getPensionAsset(month);
   }
 
-  Future<void> getInitList() {
+  Future<void> getInitList() async {
+    await getCurrencyList();
     monthList = [''];
     CollectionReference ref = _firestore.collection(ASSET_MANAGER);
     return ref.get().then((QuerySnapshot querySnapshot) {
@@ -220,6 +224,15 @@ class Database {
     monthGoal = 0;
     SharedPreferences preferences = await SharedPreferences.getInstance();
     monthGoal = preferences.getDouble(MONTHLY_GOAL) ?? 0;
+  }
+
+  Future<void> getCurrencyList() async {
+    currencyList = [];
+    SharedPreferences preferences = await SharedPreferences.getInstance();
+    List<String> list = preferences.getStringList(CURRENCY) ?? [];
+    for(String str in list) {
+      currencyList.add(str);
+    }
   }
 
   Future<void> getAssetGoal(String date) async {
@@ -286,6 +299,12 @@ class Database {
   void setMonthlyGoal(double monthlyGoal) async {
     SharedPreferences preferences = await SharedPreferences.getInstance();
     preferences.setDouble(MONTHLY_GOAL, monthlyGoal);
+  }
+
+  void setCurrencyList(List<String> currencyList) async {
+    SharedPreferences preferences = await SharedPreferences.getInstance();
+    preferences.setStringList(CURRENCY, currencyList);
+    getCurrencyList();
   }
 
   Future<void> saveCashAsset(String date, CashAsset cashAsset) {

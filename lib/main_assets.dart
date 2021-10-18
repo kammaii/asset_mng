@@ -61,19 +61,23 @@ class _MainAssetsState extends State<MainAssets> {
       future: getData(),
       builder: (ctx, snapShot) {
         List<String> assetChartTitle = [];
-        List<double> assetChartValue = [];
+        List<String> assetChartPrice = [];
+        List<double> assetChartPercent = [];
         int index = Database().monthList.indexOf(thisMonth)-1;
         if(index >= 0) {
           double totalAsset = Database().totalAssetList[index];
           double totalCash = Database().totalCashAssetList[index];
           double totalInvest = Database().totalInvestAssetList[index];
           double totalPension = Database().totalPensionAssetList[index];
-          assetChartTitle.add('생활비  (${f.format(Database().totalCashAssetList[index])} 원)');
-          assetChartTitle.add('투자    (${f.format(Database().totalInvestAssetList[index])} 원)');
-          assetChartTitle.add('연금    (${f.format(Database().totalPensionAssetList[index])} 원)');
-          assetChartValue.add(double.parse((totalCash/totalAsset*100).toStringAsFixed(1)));
-          assetChartValue.add(double.parse((totalInvest/totalAsset*100).toStringAsFixed(1)));
-          assetChartValue.add(double.parse((totalPension/totalAsset*100).toStringAsFixed(1)));
+          assetChartTitle.add('생활비');
+          assetChartTitle.add('투자');
+          assetChartTitle.add('연금');
+          assetChartPrice.add('(${f.format(Database().totalCashAssetList[index])} 원)');
+          assetChartPrice.add('(${f.format(Database().totalInvestAssetList[index])} 원)');
+          assetChartPrice.add('(${f.format(Database().totalPensionAssetList[index])} 원)');
+          assetChartPercent.add(double.parse((totalCash/totalAsset*100).toStringAsFixed(1)));
+          assetChartPercent.add(double.parse((totalInvest/totalAsset*100).toStringAsFixed(1)));
+          assetChartPercent.add(double.parse((totalPension/totalAsset*100).toStringAsFixed(1)));
           print(totalCash/totalAsset*100);
           print(totalInvest/totalAsset*100);
         }
@@ -90,7 +94,7 @@ class _MainAssetsState extends State<MainAssets> {
             ),
             Row(
               children: [
-                getCircleChart(assetChartTitle, assetChartValue),
+                getCircleChart(assetChartTitle, assetChartPrice, assetChartPercent),
               ],
             ),
             SizedBox(height: 10.0),
@@ -139,7 +143,7 @@ class _MainAssetsState extends State<MainAssets> {
     );
   }
 
-  Widget getCircleChart(List<String> titleList, List<double> valueList) {
+  Widget getCircleChart(List<String> titleList, List<String> priceList, List<double> percentList) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -165,7 +169,7 @@ class _MainAssetsState extends State<MainAssets> {
                   }),
                   startDegreeOffset: 180,
                   centerSpaceRadius: 0,
-                  sections: getSections(valueList)
+                  sections: getSections(percentList)
               ),
             ),
           ),
@@ -175,13 +179,13 @@ class _MainAssetsState extends State<MainAssets> {
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.end,
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: getIndicators(titleList),
+          children: getIndicators(titleList, priceList),
         )
       ],
     );
   }
 
-  List<Row> getIndicators(List<String> titleList) {
+  List<Row> getIndicators(List<String> titleList, List<String> titlePrice) {
     double circleSize = 15;
     return List.generate(titleList.length, (i) {
       Color textColor;
@@ -198,7 +202,15 @@ class _MainAssetsState extends State<MainAssets> {
             ),
           ),
           SizedBox(width: 5),
-          Text(titleList[i], style: TextStyle(color: textColor),
+          Container(
+            width: 150,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(titleList[i], style: TextStyle(color: textColor)),
+                Text(titlePrice[i], style: TextStyle(color: textColor))
+              ],
+            ),
           )
         ],
       );
@@ -208,7 +220,7 @@ class _MainAssetsState extends State<MainAssets> {
   List<PieChartSectionData> getSections(List<double> valueList) {
     return List.generate(valueList.length, (i) {
       final isTouched = i == touchedIndex;
-      final fontSize = isTouched ? 25.0 : 16.0;
+      final fontSize = isTouched ? 18.0 : 15.0;
       final radius = isTouched ? circleChartRadius+10 : circleChartRadius;
 
       return PieChartSectionData(

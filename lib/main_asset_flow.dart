@@ -27,7 +27,6 @@ class _AssetFlowState extends State<AssetFlow> {
 
   String thisMonth = '';
   String newMonth = '';
-  List<String> currencyDropdownList = ['원', '달러', '바트']; // todo: 입력받을 수 있는 기능 만들기
 
   var f = NumberFormat('###,###,###,###.##');
   late double assetGoal;
@@ -220,6 +219,7 @@ class _AssetFlowState extends State<AssetFlow> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     ElevatedButton(
                         onPressed: () {
@@ -231,6 +231,13 @@ class _AssetFlowState extends State<AssetFlow> {
                           });
                         },
                         child: Text('입력하기')),
+                    IconButton(
+                      tooltip: '통화편집',
+                      icon: Icon(Icons.input),
+                      onPressed: () {
+                        setCurrency();
+                      },
+                    )
                   ],
                 ),
                 SizedBox(height: 20.0),
@@ -558,6 +565,66 @@ class _AssetFlowState extends State<AssetFlow> {
     );
   }
 
+  AwesomeDialog setCurrency() {
+    String oldCurrency = '';
+    for(String str in Database().currencyList) {
+      oldCurrency += '$str ';
+    }
+    String newCurrency = '';
+    TextEditingController textFieldController = TextEditingController();
+    textFieldController.addListener(() {
+      newCurrency = textFieldController.text;
+      print(newCurrency);
+    });
+
+    return AwesomeDialog(
+        width: 500,
+        context: context,
+        dialogType: DialogType.INFO,
+        animType: AnimType.BOTTOMSLIDE,
+        body: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Column(
+            children: <Widget>[
+              Text(
+                '통화 입력',
+                style: Theme.of(context).textTheme.headline6,
+              ),
+              SizedBox(height: 10),
+              Row(
+                children: [
+                  Text(oldCurrency),
+                ],
+              ),
+              SizedBox(height: 10),
+              Material(
+                elevation: 0,
+                color: Colors.blueGrey.withAlpha(40),
+                child: TextFormField(
+                  autofocus: true,
+                  minLines: 1,
+                  controller: textFieldController,
+                  decoration: InputDecoration(
+                    border: InputBorder.none,
+                    labelText: 'new currency list',
+                    prefixIcon: Icon(Icons.text_fields),
+                  ),
+                ),
+              ),
+              SizedBox(height: 10),
+            ],
+          ),
+        ),
+        btnOkText: '저장',
+        btnCancelText: '취소',
+        btnCancelOnPress: () {},
+        btnOkOnPress: () {
+          List<String> newCurrencyList = newCurrency.split(' ');
+          Database().setCurrencyList(newCurrencyList);
+        }
+    )..show();
+  }
+
   DataTable makeTable(String type) {
     List<DataColumn> dataColumn = [];
     List<DataRow> dataRow = [];
@@ -575,7 +642,7 @@ class _AssetFlowState extends State<AssetFlow> {
           }
           return DataRow(
               cells: [
-                DataCell(getDropDownButton(cashAssetList[index].currency, currencyDropdownList, (newValue) => cashAssetList[index].currency = newValue)),
+                DataCell(getDropDownButton(cashAssetList[index].currency, Database().currencyList, (newValue) => cashAssetList[index].currency = newValue)),
                 DataCell(getTextField(cashAssetList[index].amount, (newValue) => cashAssetList[index].amount = double.parse(newValue.replaceAll(',', '')))),
                 DataCell(Text(f.format(variation.round()))),
                 DataCell(getTextField(cashAssetList[index].exchangeRate, (newValue) => cashAssetList[index].exchangeRate = double.parse(newValue.replaceAll(',', '')))),
@@ -635,7 +702,7 @@ class _AssetFlowState extends State<AssetFlow> {
         dataRow = List<DataRow>.generate(cashAssetDetailList.length, (index) =>
             DataRow(
                 cells: [
-                  DataCell(getDropDownButton(cashAssetDetailList[index].currency, currencyDropdownList, (newValue) => cashAssetDetailList[index].currency = newValue)),
+                  DataCell(getDropDownButton(cashAssetDetailList[index].currency, Database().currencyList, (newValue) => cashAssetDetailList[index].currency = newValue)),
                   DataCell(getTextField(cashAssetDetailList[index].amount, (newValue) => cashAssetDetailList[index].amount = double.parse(newValue.replaceAll(',', '')))),
                   DataCell(getTextField(cashAssetDetailList[index].note, (newValue) => cashAssetDetailList[index].note = newValue)),
                   DataCell(IconButton(
@@ -680,7 +747,7 @@ class _AssetFlowState extends State<AssetFlow> {
         dataRow = List<DataRow>.generate(investAssetList.length, (index) =>
             DataRow(
                 cells: [
-                  DataCell(getDropDownButton(investAssetList[index].currency, currencyDropdownList, (newValue) => investAssetList[index].currency = newValue)),
+                  DataCell(getDropDownButton(investAssetList[index].currency, Database().currencyList, (newValue) => investAssetList[index].currency = newValue)),
                   DataCell(getTextField(investAssetList[index].item, (newValue) => investAssetList[index].item = newValue)),
                   DataCell(getTextField(investAssetList[index].buyPrice, (newValue) => investAssetList[index].buyPrice = double.parse(newValue.replaceAll(',', '')))),
                   DataCell(getTextField(investAssetList[index].currentPrice, (newValue) => investAssetList[index].currentPrice = double.parse(newValue.replaceAll(',', '')))),
