@@ -30,7 +30,7 @@ class PensionAsset {
   }
 
   String getEarningsRate() {  // 수익률
-    return (currentPrice / buyPrice * 100).toStringAsFixed(1) + '%';
+    return (getTotalRevenue() / buyPrice * 100).toStringAsFixed(1) + '%';
   }
 
   PensionAsset.fromJson(Map<String, dynamic> json) :
