@@ -5,28 +5,40 @@ import 'cash_asset.dart';
 import 'database.dart';
 
 class CircleWidget {
-  late String title;
-  late List<String> itemList;
-  late List<String> priceList;
-  late List<double> percentList;
+  String title = '';
+  List<String> itemList = [];
+  List<double> priceList = [];
+  List<double> percentList = [];
   var f = NumberFormat('###,###,###,###.##');
+  Map<String, double> exchangeRate = {};
 
-  Map<String, double> getPriceFromTag(dynamic asset) {
-    Map<String, double> priceMap = {};
+
+  setVariablesFromTag(dynamic asset, double total) {
     if (!itemList.contains(asset.tag)) {
       itemList.add(asset.tag);
-      priceMap[asset.tag] = 0;
+      priceList.add(0);
+      percentList.add(0);
     }
-    double exPrice;
-    priceMap[asset.tag] == null ? exPrice = 0 : exPrice = priceMap[asset.tag]!;
-    double newPrice = exPrice + asset.currentPrice;
-    priceMap[asset.tag] = newPrice;
-    return priceMap;
+    int index = itemList.indexOf(asset.tag);
+    double exPrice = priceList[index];
+    double newPrice;
+    const String DOLLOR = '달러';
+    if(asset is InvestAsset) {
+      if(asset.currency == DOLLOR) {
+        newPrice = exPrice + (asset.currentPrice * asset.quantity * Database().exchangeRate[DOLLOR]!);
+      } else {
+        newPrice = exPrice + (asset.currentPrice * asset.quantity);
+      }
+    } else {
+      newPrice = exPrice + asset.currentPrice;
+    }
+    priceList[index] = newPrice;
+    percentList[index] = double.parse((newPrice / total * 100).toStringAsFixed(1));
   }
 
   setVariables(String item, double price, double total) {
     itemList.add(item);
-    priceList.add('(${f.format(price)} 원)');
+    priceList.add(price);
     percentList.add(double.parse((price / total * 100).toStringAsFixed(1)));
   }
 
@@ -41,9 +53,9 @@ class CircleWidget {
       case 0:
         title = '총자산';
         itemList = ['생활비','투자','연금'];
-        priceList.add('(${f.format(Database().totalCashAssetList[index])} 원)');
-        priceList.add('(${f.format(Database().totalInvestAssetList[index])} 원)');
-        priceList.add('(${f.format(Database().totalPensionAssetList[index])} 원)');
+        priceList.add(Database().totalCashAssetList[index]);
+        priceList.add(Database().totalInvestAssetList[index]);
+        priceList.add(Database().totalPensionAssetList[index]);
         percentList.add(double.parse((totalCash/totalAsset*100).toStringAsFixed(1)));
         percentList.add(double.parse((totalInvest/totalAsset*100).toStringAsFixed(1)));
         percentList.add(double.parse((totalPension/totalAsset*100).toStringAsFixed(1)));
@@ -53,7 +65,8 @@ class CircleWidget {
         title = '생활비';
         List<CashAsset> assetList = Database().cashList;
         for(CashAsset asset in assetList) {
-          setVariables(asset.currency, asset.amount, totalCash);
+          double price = asset.amount * asset.exchangeRate;
+          setVariables(asset.currency, price, totalCash);
         }
         break;
 
@@ -61,14 +74,9 @@ class CircleWidget {
         List<InvestAsset> assetList = Database().investList;
         if(detailTitle == null) {
           title = '투자자산';
-          Map<String, double> priceMap = {};
           for (InvestAsset asset in assetList) {
-            priceMap = getPriceFromTag(asset);
+            setVariablesFromTag(asset, totalInvest);
           }
-          priceMap.forEach((key, value) {
-            setVariables(key, value, totalInvest);
-          });
-
         } else {
           title = detailTitle;
           for (InvestAsset asset in assetList) {
@@ -81,14 +89,9 @@ class CircleWidget {
         List<PensionAsset> assetList = Database().pensionList;
         if(detailTitle == null) {
           title = '연금자산';
-          Map<String, double> priceMap = {};
           for (PensionAsset asset in assetList) {
-            priceMap = getPriceFromTag(asset);
+            setVariablesFromTag(asset, totalPension);
           }
-          priceMap.forEach((key, value) {
-            setVariables(key, value, totalPension);
-          });
-
         } else {
           title = detailTitle;
           for (PensionAsset asset in assetList) {

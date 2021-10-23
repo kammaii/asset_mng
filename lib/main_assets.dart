@@ -1,3 +1,4 @@
+import 'package:asset_mng/circle_widget.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -22,9 +23,9 @@ class _MainAssetsState extends State<MainAssets> {
     const Color(0xff02d39a),
   ];
   String thisMonth = '';
-  bool isMonthChanged = false;
+  bool isMonthChanged = true;
   bool isInitState = false;
-  List<Widget> circleChartList = [];
+  List<CircleWidget> circleWidgetList = [];
 
   // 월리스트, 총액리스트, 목표리스트
   getInitList() async {
@@ -32,42 +33,25 @@ class _MainAssetsState extends State<MainAssets> {
     thisMonth = Database().monthList.last;
   }
 
-  getAssetData() async {
-    await Database().getSpecificMonthData(thisMonth);
-  }
-
   Future<void> getData() async {
     if(isInitState) {
       await getInitList();
       isInitState = false;
     }
+    if(isMonthChanged) {
+      await Database().getSpecificMonthData(thisMonth);
+      isMonthChanged = false;
+    }
+
     int index = Database().monthList.indexOf(thisMonth) - 1;
     if(index >= 0) {
       getTotalAsset(index);
     }
-    await getAssetData();
   }
 
   void getTotalAsset(int index) {
-    circleChartList = [];
-    List<String> assetChartTitle = [];
-    List<String> assetChartPrice = [];
-    List<double> assetChartPercent = [];
-    double totalAsset = Database().totalAssetList[index];
-    double totalCash = Database().totalCashAssetList[index];
-    double totalInvest = Database().totalInvestAssetList[index];
-    double totalPension = Database().totalPensionAssetList[index];
-    assetChartTitle.add('생활비');
-    assetChartTitle.add('투자');
-    assetChartTitle.add('연금');
-    assetChartPrice.add('(${f.format(Database().totalCashAssetList[index])} 원)');
-    assetChartPrice.add('(${f.format(Database().totalInvestAssetList[index])} 원)');
-    assetChartPrice.add('(${f.format(Database().totalPensionAssetList[index])} 원)');
-    assetChartPercent.add(double.parse((totalCash/totalAsset*100).toStringAsFixed(1)));
-    assetChartPercent.add(double.parse((totalInvest/totalAsset*100).toStringAsFixed(1)));
-    assetChartPercent.add(double.parse((totalPension/totalAsset*100).toStringAsFixed(1)));
-    Widget totalAssetWidget = getCircleChart('총자산', assetChartTitle, assetChartPrice, assetChartPercent);
-    circleChartList.add(totalAssetWidget);
+    circleWidgetList = [];
+    circleWidgetList.add(CircleWidget(0, index));
   }
 
   @override
@@ -78,7 +62,6 @@ class _MainAssetsState extends State<MainAssets> {
 
   @override
   Widget build(BuildContext context) {
-
     return FutureBuilder(
       future: getData(),
       builder: (ctx, snapShot) {
@@ -91,6 +74,7 @@ class _MainAssetsState extends State<MainAssets> {
               padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
               child: getDropDownButton(thisMonth, Database().monthList, (newValue) {
                 thisMonth = newValue;
+                isMonthChanged = true;
                 getData();
               }),
             ),
@@ -101,9 +85,9 @@ class _MainAssetsState extends State<MainAssets> {
                   Expanded(
                     child: ListView.builder(
                       scrollDirection: Axis.horizontal,
-                      itemCount: circleChartList.length,
+                      itemCount: circleWidgetList.length,
                       itemBuilder: (context, index) {
-                        return circleChartList[index];
+                        return getCircleChart(circleWidgetList[index]);
                       },
                     ),
                   )
@@ -120,15 +104,15 @@ class _MainAssetsState extends State<MainAssets> {
     );
   }
 
-  Widget getCircleChart(String title, List<String> titleList, List<String> priceList, List<double> percentList) {
+  Widget getCircleChart(CircleWidget circleWidget) {
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text('<$title>', textScaleFactor: 1.3),
+          Text('<${circleWidget.title}>', textScaleFactor: 1.3),
           GestureDetector(
             onTap: () {
-              print(touchedIndex);
+              //print(touchedIndex);
               //todo: 원형차트 확장하기
             },
             child: Container(
@@ -149,7 +133,7 @@ class _MainAssetsState extends State<MainAssets> {
                     }),
                     startDegreeOffset: 180,
                     centerSpaceRadius: 0,
-                    sections: getSections(percentList)
+                    sections: getSections(circleWidget.percentList)
                 ),
               ),
             ),
@@ -158,14 +142,14 @@ class _MainAssetsState extends State<MainAssets> {
             mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.end,
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: getIndicators(titleList, priceList),
+            children: getIndicators(circleWidget.itemList, circleWidget.priceList),
           )
         ],
       ),
     );
   }
 
-  List<Row> getIndicators(List<String> titleList, List<String> titlePrice) {
+  List<Row> getIndicators(List<String> titleList, List<double> priceList) {
     double circleSize = 15;
     return List.generate(titleList.length, (i) {
       Color textColor;
@@ -183,12 +167,12 @@ class _MainAssetsState extends State<MainAssets> {
           ),
           SizedBox(width: 5),
           Container(
-            width: 150,
+            width: 180,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(titleList[i], style: TextStyle(color: textColor)),
-                Text(titlePrice[i], style: TextStyle(color: textColor))
+                Text('(${f.format(priceList[i].ceilToDouble())} 원)', style: TextStyle(color: textColor))
               ],
             ),
           )

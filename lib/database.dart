@@ -52,6 +52,7 @@ class Database {
   List<CashDetail> cashDetailList = [];
   List<InvestAsset> investList = [];
   List<PensionAsset> pensionList = [];
+  Map<String, double> exchangeRate = {};
   double assetGoal = 0;
 
   late List<String> cashIdList;
@@ -252,7 +253,9 @@ class Database {
     return ref.get().then((QuerySnapshot snapshot) {
       snapshot.docs.forEach((element) {
         Map<String, dynamic> data = element.data() as Map<String, dynamic>;
-        cashList.add(CashAsset.fromJson(data));
+        CashAsset asset = CashAsset.fromJson(data);
+        cashList.add(asset);
+        exchangeRate[asset.currency] = asset.exchangeRate;
       });
       cashList.sort((a,b) => a.no.compareTo(b.no));
     });

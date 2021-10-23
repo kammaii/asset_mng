@@ -52,7 +52,6 @@ class _AssetFlowState extends State<AssetFlow> {
   bool loading = true;
   bool isChecked = false;
   double investTax = 0;
-  Map<String, double> exchangeRate = {};
 
   void initData() {
     assetGoal = 0;
@@ -61,13 +60,6 @@ class _AssetFlowState extends State<AssetFlow> {
     lastCashAssetList = [];
     investAssetList = [];
     pensionAssetList = [];
-  }
-
-  void getExchangeRate() {
-    exchangeRate.clear();
-    for(CashAsset asset in cashAssetList) {
-      exchangeRate[asset.currency] = asset.exchangeRate;
-    }
   }
 
   void setInputModeData() async {
@@ -126,7 +118,7 @@ class _AssetFlowState extends State<AssetFlow> {
       totalCash += cashAsset.amount * cashAsset.exchangeRate;
     }
     for(InvestAsset investAsset in investAssetList) {
-      double rate = exchangeRate[investAsset.currency]!.toDouble();
+      double rate = Database().exchangeRate[investAsset.currency]!.toDouble();
       totalInvest += (investAsset.getGrossValue() * rate);
     }
     totalInvest -= investTax;
@@ -189,8 +181,8 @@ class _AssetFlowState extends State<AssetFlow> {
         investTax += asset.getTotalRevenue();
       }
     }
-    if(exchangeRate.containsKey(DOLLOR)) {
-      investTax *= exchangeRate[DOLLOR]!.toDouble();
+    if(Database().exchangeRate.containsKey(DOLLOR)) {
+      investTax *= Database().exchangeRate[DOLLOR]!.toDouble();
     }
     if(investTax > 2500000) {
       investTax = (investTax - 2500000) * 0.22;
@@ -205,7 +197,6 @@ class _AssetFlowState extends State<AssetFlow> {
       isInputMode ? setInputModeData() : setReadModeData();
       isModeChanged = false;
     }
-    getExchangeRate();
     checkInvestTax();
     getTotalAsset();
     checkGap();
