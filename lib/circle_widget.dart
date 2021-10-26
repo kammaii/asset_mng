@@ -13,6 +13,18 @@ class CircleWidget {
   Map<String, double> exchangeRate = {};
 
 
+  setOrder() {
+    List<String> itemListClone = [...itemList];
+    List<double> priceListClone = [...priceList];
+    priceList.sort((a,b) => a.compareTo(b));
+    percentList.sort((a,b) => a.compareTo(b));
+    itemList.clear();
+    for(double d in priceList) {
+      int index = priceListClone.indexOf(d);
+      itemList.add(itemListClone[index]);
+    }
+  }
+
   setVariablesFromTag(dynamic asset, double total) {
     if (!itemList.contains(asset.tag)) {
       itemList.add(asset.tag);
@@ -59,6 +71,7 @@ class CircleWidget {
         percentList.add(double.parse((totalCash/totalAsset*100).toStringAsFixed(1)));
         percentList.add(double.parse((totalInvest/totalAsset*100).toStringAsFixed(1)));
         percentList.add(double.parse((totalPension/totalAsset*100).toStringAsFixed(1)));
+        setOrder();
         break;
 
       case 1:
@@ -68,6 +81,7 @@ class CircleWidget {
           double price = asset.amount * asset.exchangeRate;
           setVariables(asset.currency, price, totalCash);
         }
+        setOrder();
         break;
 
       case 2:
@@ -79,10 +93,27 @@ class CircleWidget {
           }
         } else {
           title = detailTitle;
-          for (InvestAsset asset in assetList) {
-            setVariables(asset.item, asset.currentPrice, totalInvest);
+          double totalValue = 0;
+          for(InvestAsset asset in assetList) {
+            if(asset.tag == title) {
+              double grossValue = asset.currentPrice * asset.quantity;
+              if(asset.currency == '달러') {
+                grossValue *= Database().exchangeRate['달러']!;
+              }
+              totalValue += grossValue;
+            }
+          }
+          for(InvestAsset asset in assetList) {
+            double grossValue = asset.currentPrice * asset.quantity;
+            if(asset.tag == title) {
+              if(asset.currency == '달러') {
+                grossValue *= Database().exchangeRate['달러']!;
+              }
+              setVariables(asset.item, grossValue, totalValue);
+            }
           }
         }
+        setOrder();
         break;
 
       case 3:
@@ -94,10 +125,19 @@ class CircleWidget {
           }
         } else {
           title = detailTitle;
+          double totalValue = 0;
+          for(PensionAsset asset in assetList) {
+            if(asset.tag == title) {
+              totalValue += asset.currentPrice;
+            }
+          }
           for (PensionAsset asset in assetList) {
-            setVariables(asset.item, asset.currentPrice, totalPension);
+            if(asset.tag == title) {
+              setVariables(asset.item, asset.currentPrice, totalValue);
+            }
           }
         }
+        setOrder();
         break;
     }
   }

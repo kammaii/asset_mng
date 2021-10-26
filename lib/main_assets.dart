@@ -16,8 +16,11 @@ class MainAssets extends StatefulWidget {
 class _MainAssetsState extends State<MainAssets> {
   var f = NumberFormat('###,###,###,###.##');
   double circleChartRadius = 80.0;
-  late int touchedIndex = -1;
-  List<Color> chartColors = [Color(0xff6E8DFA),Color(0xffBBFA56),Color(0xffFA6248),Color(0xffFACB48),Color(0xff61FAB7),Color(0xffFA7F9E),Color(0xff5CDDFA),Color(0xffFAE443),Color(0xff50FA68),Color(0xff8269FA)];
+  int touchedIndex = -1;
+  String touchedChartTitle = '';
+  List<Color> chartColors = [
+    Color(0xff6E8DFA),Color(0xffBBFA56),Color(0xffFA6248),Color(0xffFACB48),Color(0xff61FAB7),Color(0xffFA7F9E),Color(0xff5CDDFA),Color(0xffFAE443),Color(0xff50FA68),Color(0xff8269FA)
+  ];
   List<Color> gradientColors = [
     const Color(0xff23b6e6),
     const Color(0xff02d39a),
@@ -26,6 +29,7 @@ class _MainAssetsState extends State<MainAssets> {
   bool isMonthChanged = true;
   bool isInitState = false;
   List<CircleWidget> circleWidgetList = [];
+  late int index;
 
   // 월리스트, 총액리스트, 목표리스트
   getInitList() async {
@@ -42,16 +46,15 @@ class _MainAssetsState extends State<MainAssets> {
       await Database().getSpecificMonthData(thisMonth);
       isMonthChanged = false;
     }
-
-    int index = Database().monthList.indexOf(thisMonth) - 1;
-    if(index >= 0) {
-      getTotalAsset(index);
-    }
+    initCircleWidget();
   }
 
-  void getTotalAsset(int index) {
-    circleWidgetList = [];
-    circleWidgetList.add(CircleWidget(0, index));
+  void initCircleWidget() {
+    index = Database().monthList.indexOf(thisMonth) - 1;
+    if(index > 0 && circleWidgetList.length == 0) {
+      circleWidgetList = [];
+      circleWidgetList.add(CircleWidget(0, index));
+    }
   }
 
   @override
@@ -82,14 +85,13 @@ class _MainAssetsState extends State<MainAssets> {
               child: Row(
                 children: [
                   SizedBox(width: 20),
-                  Expanded(
-                    child: ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: circleWidgetList.length,
-                      itemBuilder: (context, index) {
-                        return getCircleChart(circleWidgetList[index]);
-                      },
-                    ),
+                  ListView.builder(
+                    shrinkWrap: true,
+                    scrollDirection: Axis.horizontal,
+                    itemCount: circleWidgetList.length,
+                    itemBuilder: (context, index) {
+                      return getCircleChart(circleWidgetList[index]);
+                    },
                   )
                 ],
               ),
@@ -105,15 +107,48 @@ class _MainAssetsState extends State<MainAssets> {
   }
 
   Widget getCircleChart(CircleWidget circleWidget) {
-    return Center(
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 50),
       child: Column(
+        mainAxisAlignment: MainAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
           Text('<${circleWidget.title}>', textScaleFactor: 1.3),
           GestureDetector(
             onTap: () {
-              //print(touchedIndex);
-              //todo: 원형차트 확장하기
+              String title = circleWidget.title;
+              String item = circleWidget.itemList[touchedIndex];
+
+              switch (title) {
+                case '총자산':
+                  setState(() {
+                    if(circleWidgetList.length > 1) {
+                      circleWidgetList.removeRange(1, circleWidgetList.length);
+                    }
+                    if(item == '생활비') {
+                      circleWidgetList.add(CircleWidget(1, index));
+                    } else if (item == '투자') {
+                      circleWidgetList.add(CircleWidget(2, index));
+                    } else if (item == '연금') {
+                      circleWidgetList.add(CircleWidget(3, index));
+                    }
+                  });
+                  break;
+
+                case '투자자산' :
+                  if(circleWidgetList.length == 3) {
+                    circleWidgetList.removeLast();
+                  }
+                  circleWidgetList.add(CircleWidget(2, index, item));
+                  break;
+
+                case '연금자산' :
+                  if(circleWidgetList.length == 3) {
+                    circleWidgetList.removeLast();
+                  }
+                  circleWidgetList.add(CircleWidget(3, index, item));
+                  break;
+              }
             },
             child: Container(
               width: circleChartRadius*2.5,
@@ -126,74 +161,102 @@ class _MainAssetsState extends State<MainAssets> {
                             pieTouchResponse.touchInput is! PointerUpEvent;
                         if (desiredTouch && pieTouchResponse.touchedSection != null) {
                           touchedIndex = pieTouchResponse.touchedSection!.touchedSectionIndex;
+                          touchedChartTitle = circleWidget.title;
                         } else {
                           //f(-1);
                         }
                       });
                     }),
-                    startDegreeOffset: 180,
+                    startDegreeOffset: -90,
                     centerSpaceRadius: 0,
-                    sections: getSections(circleWidget.percentList)
+                    sections: getSections(circleWidget)
                 ),
               ),
             ),
           ),
           Column(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.end,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: getIndicators(circleWidget.itemList, circleWidget.priceList),
+            children: [
+              Container(
+                width: 250,
+                height: 100,
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: circleWidget.itemList.length,
+                  itemBuilder: (context, index) {
+                    return getIndicators(circleWidget)[index];
+                  },
+                ),
+              )
+            ]
           )
         ],
       ),
     );
   }
 
-  List<Row> getIndicators(List<String> titleList, List<double> priceList) {
-    double circleSize = 15;
-    return List.generate(titleList.length, (i) {
-      Color textColor;
-      touchedIndex == i ? textColor = Colors.red : textColor = Colors.black;
-
-      return Row(
-        children: [
-          Container(
-            width: circleSize,
-            height: circleSize,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: chartColors[i]
-            ),
-          ),
-          SizedBox(width: 5),
-          Container(
-            width: 180,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(titleList[i], style: TextStyle(color: textColor)),
-                Text('(${f.format(priceList[i].ceilToDouble())} 원)', style: TextStyle(color: textColor))
-              ],
-            ),
-          )
-        ],
-      );
-    });
+  Color getChartColor(int index) {
+    Color color = chartColors[index % chartColors.length];
+    return color;
   }
 
-  List<PieChartSectionData> getSections(List<double> valueList) {
-    return List.generate(valueList.length, (i) {
-      final isTouched = i == touchedIndex;
+  Color getTextColor(String title, int index, bool isChart) {
+    Color color;
+    bool isSelected = touchedChartTitle == title && touchedIndex == index ? true : false;
+    if(isChart) {
+      isSelected ? color = Colors.black : color = Colors.white;
+    } else {
+      isSelected ? color=Colors.red : color=Colors.black;
+    }
+    return color;
+  }
+
+  List<Padding> getIndicators(CircleWidget circleWidget) {
+    double circleSize = 15;
+    List<Padding> indicators = List.generate(circleWidget.itemList.length, (i) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 5),
+        child: Row(
+          mainAxisSize: MainAxisSize.max,
+          children: [
+            Container(
+              width: circleSize,
+              height: circleSize,
+              decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: getChartColor(i)
+              ),
+            ),
+            SizedBox(width: 5),
+            Expanded(
+              child: Row(
+                children: [
+                  Expanded(child: Text(circleWidget.itemList[i], style: TextStyle(color: getTextColor(circleWidget.title,i,false)), textAlign: TextAlign.start)),
+                  SizedBox(width: 10),
+                  Text('(${f.format(circleWidget.priceList[i].ceilToDouble())} 원)', style: TextStyle(color: getTextColor(circleWidget.title,i,false)))
+                ],
+              ),
+            )
+          ],
+        ),
+      );
+    });
+    List<Padding> reversed = List.from(indicators.reversed);
+    return reversed;
+  }
+
+  List<PieChartSectionData> getSections(CircleWidget circleWidget) {
+    return List.generate(circleWidget.percentList.length, (i) {
+      final isTouched = i == touchedIndex && circleWidget.title == touchedChartTitle ? true : false;
       final fontSize = isTouched ? 18.0 : 15.0;
       final radius = isTouched ? circleChartRadius+10 : circleChartRadius;
 
       return PieChartSectionData(
-        color: chartColors[i],
-        value: valueList[i],
-        title: '${valueList[i].toString()}%',
+        color: getChartColor(i),
+        value: circleWidget.percentList[i],
+        title: '${circleWidget.percentList[i].toString()}%',
         radius: radius,
         titleStyle: TextStyle(
-            fontSize: fontSize, fontWeight: FontWeight.bold, color: Colors.white),
+            fontSize: fontSize, fontWeight: FontWeight.bold, color: getTextColor(circleWidget.title,i,true)),
       );
     });
   }
