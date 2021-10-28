@@ -28,11 +28,7 @@ class _MyAppState extends State<MyApp> {
 
 
     return MaterialApp(
-      title: 'My Asset Manager',
       home: Scaffold(
-        appBar: AppBar(
-          title: Text('My Asset Manager'),
-        ),
         body: Center(
           child: currentPage
         ),

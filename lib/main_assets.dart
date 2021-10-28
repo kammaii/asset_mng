@@ -3,7 +3,8 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
-
+import 'package:loading_indicator/loading_indicator.dart';
+import 'dart:math';
 import 'database.dart';
 
 class MainAssets extends StatefulWidget {
@@ -21,15 +22,18 @@ class _MainAssetsState extends State<MainAssets> {
   List<Color> chartColors = [
     Color(0xff6E8DFA),Color(0xffBBFA56),Color(0xffFA6248),Color(0xffFACB48),Color(0xff61FAB7),Color(0xffFA7F9E),Color(0xff5CDDFA),Color(0xffFAE443),Color(0xff50FA68),Color(0xff8269FA)
   ];
-  List<Color> gradientColors = [
-    const Color(0xff23b6e6),
-    const Color(0xff02d39a),
-  ];
+
   String thisMonth = '';
   bool isMonthChanged = true;
   bool isInitState = false;
   List<CircleWidget> circleWidgetList = [];
   late int index;
+  late bool isFirstLineChart;
+
+  late List<String> monthListWithEx;
+  late List<double> totalAssetListWithEx;
+  late List<double> goalAssetListWithEx;
+
 
   // 월리스트, 총액리스트, 목표리스트
   getInitList() async {
@@ -37,7 +41,7 @@ class _MainAssetsState extends State<MainAssets> {
     thisMonth = Database().monthList.last;
   }
 
-  Future<void> getData() async {
+  Future<bool> getData() async {
     if(isInitState) {
       await getInitList();
       isInitState = false;
@@ -47,6 +51,7 @@ class _MainAssetsState extends State<MainAssets> {
       isMonthChanged = false;
     }
     initCircleWidget();
+    return true;
   }
 
   void initCircleWidget() {
@@ -67,41 +72,62 @@ class _MainAssetsState extends State<MainAssets> {
   Widget build(BuildContext context) {
     return FutureBuilder(
       future: getData(),
-      builder: (ctx, snapShot) {
+      builder: (BuildContext context, AsyncSnapshot<bool> snapshot) {
+        Widget child;
+        if(snapshot.hasData) {
+          monthListWithEx = Database().exMonthList + Database().monthList.sublist(1);
+          totalAssetListWithEx = Database().exTotalAssetList + Database().totalAssetList;
+          goalAssetListWithEx = Database().exGoalAssetList + Database().goalAssetList;
 
-        return Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
-              child: getDropDownButton(thisMonth, Database().monthList, (newValue) {
-                thisMonth = newValue;
-                isMonthChanged = true;
-                getData();
-              }),
-            ),
-            Expanded(
-              child: Row(
-                children: [
-                  SizedBox(width: 20),
-                  ListView.builder(
-                    shrinkWrap: true,
-                    scrollDirection: Axis.horizontal,
-                    itemCount: circleWidgetList.length,
-                    itemBuilder: (context, index) {
-                      return getCircleChart(circleWidgetList[index]);
-                    },
+          child = Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
+                child: getDropDownButton(thisMonth, Database().monthList, (newValue) {
+                  thisMonth = newValue;
+                  isMonthChanged = true;
+                  getData();
+                }),
+              ),
+              Expanded(
+                child: Row(
+                  children: [
+                    SizedBox(width: 20),
+                    ListView.builder(
+                      shrinkWrap: true,
+                      scrollDirection: Axis.horizontal,
+                      itemCount: circleWidgetList.length,
+                      itemBuilder: (context, index) {
+                        return getCircleChart(circleWidgetList[index]);
+                      },
+                    )
+                  ],
+                ),
+              ),
+              Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: 20, right: 80, bottom: 40),
+                    child: getLineChart(),
                   )
-                ],
+              )
+            ],
+          );
+        } else {
+          child = Align(
+            alignment: Alignment.center,
+            child: Container(
+              height: 100,
+              width: 100,
+              child: LoadingIndicator(
+                colors: [Colors.red, Colors.orange, Colors.yellow, Colors.green, Colors.blue, Colors.purple],
+                indicatorType: Indicator.ballSpinFadeLoader,
               ),
             ),
-            SizedBox(height: 30.0),
-            Expanded(
-                child: getLineChart()
-            )
-          ],
-        );
+          );
+        }
+        return child;
       },
     );
   }
@@ -261,38 +287,136 @@ class _MainAssetsState extends State<MainAssets> {
     });
   }
 
+  FlTitlesData titlesData() {
+    return FlTitlesData(
+      bottomTitles: SideTitles(
+        showTitles: true,
+        getTextStyles: (_) => TextStyle(
+          color: Colors.black,
+          fontSize: 15
+        ),
+        getTitles: (value) {
+          String month = monthListWithEx[value.toInt()];
+          if(month.contains('.01')) {
+            return '\''+month.substring(0,2);
+          } else {
+            return '';
+          }
+        }
+      ),
+      leftTitles: SideTitles(
+          showTitles: true,
+          getTextStyles: (_) => TextStyle(
+              color: Colors.black,
+              fontSize: 15
+          ),
+          getTitles: (value) {
+            if(value == 0) {
+              return '';
+            } else {
+              return '$value 억';
+            }
+          }
+      ),
+    );
+  }
+
+  LineTooltipItem getLineTooltipItem(bool isFirst, LineBarSpot spot) {
+    String text1;
+    String text2;
+    Color color1;
+    Color color2;
+    int index = spot.spotIndex;
+    double goal = (goalAssetListWithEx)[index];
+    double asset = (totalAssetListWithEx)[index];
+    double gap = asset - goal;
+    String gapString;
+    if(gap >= 0) {
+      gapString = '+ ${f.format(gap)}';
+    } else {
+      gapString = '- ${f.format(gap)}';
+    }
+    if(isFirst) {
+      text1 = '${(monthListWithEx)[(spot.x).toInt()]} \n';
+      text2 = '목표: ${f.format(goal)}';
+      color1 = Color(0xff000000);
+      color2 = Color(0xffFF9994);
+      isFirstLineChart = false;
+    } else {
+      text1 = '실적: ${f.format(asset)} \n';
+      text2 = gapString;
+      color1 = Color(0xffA30700);
+      if(gap >= 0) {
+        color2 = Colors.green;
+      } else {
+        color2 = Colors.red;
+      }
+
+    }
+    return LineTooltipItem(
+      text1,
+      TextStyle(
+        color: color1,
+      ),
+      children: [
+        TextSpan(
+          text: text2,
+          style: TextStyle(
+            color: color2,
+          ),
+        )
+      ],
+    );
+  }
+
+  LineTouchData lineTouchData() {
+    return LineTouchData(
+      handleBuiltInTouches: true,
+      touchTooltipData: LineTouchTooltipData(
+        tooltipBgColor: Color(0xffE1E0F3),
+        getTooltipItems: (List<LineBarSpot> touchedSpots) {
+          isFirstLineChart = true;
+          return touchedSpots.map((spot) {
+            return getLineTooltipItem(isFirstLineChart, spot);
+          }).toList();
+        }
+      )
+    );
+  }
+
+  LineChartBarData getAssetLine(bool isTotalAsset) {
+    List<double> data;
+    List<Color> colors;
+    if(isTotalAsset) {
+      data = totalAssetListWithEx;
+      colors = [Color(0xffA30700), Color(0xffA30700)];
+    } else {
+      data = goalAssetListWithEx;
+      colors = [Color(0xffFF9994), Color(0xffFF9994)];
+    }
+    return LineChartBarData(
+        isCurved: true,
+        colors: colors,
+        spots: List.generate(data.length, (i) {
+          double y = double.parse((data[i]/100000000).toStringAsFixed(2));
+          return FlSpot(i.toDouble(), y);
+        })
+    );
+  }
+
   LineChart getLineChart() {
     return LineChart(
         LineChartData(
-            minX: 0,
-            maxX: 11,
-            minY: 0,
-            maxY: 15,
-            lineBarsData: [
-              LineChartBarData(
-                  spots: [
-                    FlSpot(0, 3),
-                    FlSpot(2, 5),
-                    FlSpot(4, 9),
-                    FlSpot(6, 10),
-                    FlSpot(8, 5),
-                    FlSpot(10, 7)
-                  ],
-                  isCurved: true,
-                  colors: gradientColors
-              ),
-              LineChartBarData(
-                spots: [
-                  FlSpot(0, 4),
-                  FlSpot(2, 2),
-                  FlSpot(4, 12),
-                  FlSpot(6, 14),
-                  FlSpot(8, 8),
-                  FlSpot(10, 6)
-                ],
-                isCurved: true,
-              )
-            ]
+          minX: 0,
+          maxX: (monthListWithEx.length-1).toDouble(),
+          minY: 0,
+          maxY: (totalAssetListWithEx.reduce(max)/100000000).ceil().toDouble(),
+          titlesData: titlesData(),
+          lineTouchData: lineTouchData(),
+          lineBarsData: [
+            getAssetLine(true),
+            getAssetLine(false),
+          ]
         )
     );
   }
