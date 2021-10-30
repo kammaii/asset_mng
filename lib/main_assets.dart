@@ -47,19 +47,17 @@ class _MainAssetsState extends State<MainAssets> {
       isInitState = false;
     }
     if(isMonthChanged) {
-      await Database().getSpecificMonthData(thisMonth);
       isMonthChanged = false;
+      await Database().getSpecificMonthData(thisMonth);
+      initCircleWidget();
     }
-    initCircleWidget();
     return true;
   }
 
   void initCircleWidget() {
     index = Database().monthList.indexOf(thisMonth) - 1;
-    if(index > 0 && circleWidgetList.length == 0) {
-      circleWidgetList = [];
-      circleWidgetList.add(CircleWidget(0, index));
-    }
+    circleWidgetList = [];
+    circleWidgetList.add(CircleWidget(0, index));
   }
 
   @override
@@ -88,7 +86,6 @@ class _MainAssetsState extends State<MainAssets> {
                 child: getDropDownButton(thisMonth, Database().monthList, (newValue) {
                   thisMonth = newValue;
                   isMonthChanged = true;
-                  getData();
                 }),
               ),
               Expanded(
@@ -334,7 +331,7 @@ class _MainAssetsState extends State<MainAssets> {
     if(gap >= 0) {
       gapString = '+ ${f.format(gap)}';
     } else {
-      gapString = '- ${f.format(gap)}';
+      gapString = f.format(gap);
     }
     if(isFirst) {
       text1 = '${(monthListWithEx)[(spot.x).toInt()]} \n';

@@ -10,7 +10,6 @@ class CircleWidget {
   List<double> priceList = [];
   List<double> percentList = [];
   var f = NumberFormat('###,###,###,###.##');
-  Map<String, double> exchangeRate = {};
 
 
   setOrder() {
@@ -54,12 +53,18 @@ class CircleWidget {
     percentList.add(double.parse((price / total * 100).toStringAsFixed(1)));
   }
 
-  CircleWidget(int type, int index, [String? detailTitle]) { // 0:총자산, 1:생활비, 2:투자자산, 3:연금자산
+  initLists() {
+    itemList.clear();
+    priceList.clear();
+    percentList.clear();
+  }
 
+  CircleWidget(int type, int index, [String? detailTitle]) { // 0:총자산, 1:생활비, 2:투자자산, 3:연금자산
     double totalAsset = Database().totalAssetList[index];
     double totalCash = Database().totalCashAssetList[index];
     double totalInvest = Database().totalInvestAssetList[index];
     double totalPension = Database().totalPensionAssetList[index];
+    initLists();
 
     switch (type) {
       case 0:
