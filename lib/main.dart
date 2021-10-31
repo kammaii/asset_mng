@@ -1,6 +1,5 @@
 import 'package:asset_mng/main_assets.dart';
 import 'package:asset_mng/main_asset_flow.dart';
-import 'package:asset_mng/main_search.dart';
 import 'package:fancy_bottom_navigation/fancy_bottom_navigation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -36,7 +35,6 @@ class _MyAppState extends State<MyApp> {
           tabs: [
             TabData(iconData: Icons.attach_money_rounded, title: 'Assets'),
             TabData(iconData: Icons.waves_rounded, title: 'Asset flow'),
-            TabData(iconData: Icons.search, title: 'Search'),
           ],
           onTabChangedListener: (position) {
             setState(() {
@@ -44,8 +42,6 @@ class _MyAppState extends State<MyApp> {
                 currentPage = MainAssets();
               } else if(position == 1) {
                 currentPage = AssetFlow();
-              } else if(position == 2) {
-                currentPage = MainSearch();
               }
             });
           },

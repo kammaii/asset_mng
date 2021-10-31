@@ -34,6 +34,8 @@ class _MainAssetsState extends State<MainAssets> {
   late List<double> totalAssetListWithEx;
   late List<double> goalAssetListWithEx;
 
+  List<String> assetVariation = [];
+
 
   // 월리스트, 총액리스트, 목표리스트
   getInitList() async {
@@ -48,14 +50,30 @@ class _MainAssetsState extends State<MainAssets> {
     }
     if(isMonthChanged) {
       isMonthChanged = false;
+      index = Database().monthList.indexOf(thisMonth) - 1;
       await Database().getSpecificMonthData(thisMonth);
-      initCircleWidget();
+      calcAssetVariation();
+      initCircleWidget(index);
     }
     return true;
   }
 
-  void initCircleWidget() {
-    index = Database().monthList.indexOf(thisMonth) - 1;
+  void calcAssetVariation() {
+    assetVariation = [];
+    List<double> asset = [];
+    asset.add(Database().totalCashAssetList[index] - Database().totalCashAssetList[index-1]);
+    asset.add(Database().totalInvestAssetList[index] - Database().totalInvestAssetList[index-1]);
+    asset.add(Database().totalPensionAssetList[index] - Database().totalPensionAssetList[index-1]);
+    for(double d in asset) {
+      if(d >= 0) {
+        assetVariation.add('+${f.format(d)}');
+      } else {
+        assetVariation.add('${f.format(d)}');
+      }
+    }
+  }
+
+  void initCircleWidget(int index) {
     circleWidgetList = [];
     circleWidgetList.add(CircleWidget(0, index));
   }
@@ -90,8 +108,8 @@ class _MainAssetsState extends State<MainAssets> {
               ),
               Expanded(
                 child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    SizedBox(width: 20),
                     ListView.builder(
                       shrinkWrap: true,
                       scrollDirection: Axis.horizontal,
@@ -99,6 +117,24 @@ class _MainAssetsState extends State<MainAssets> {
                       itemBuilder: (context, index) {
                         return getCircleChart(circleWidgetList[index]);
                       },
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.only(right: 20, bottom: 20),
+                      child: Container(
+                        width: 200,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('<전월대비>', textScaleFactor: 1.3),
+                            SizedBox(height: 20),
+                            Text('생활비: ${assetVariation[0]}'),
+                            SizedBox(height: 10),
+                            Text('투자: ${assetVariation[1]}'),
+                            SizedBox(height: 10),
+                            Text('연금: ${assetVariation[2]}')
+                          ],
+                        ),
+                      ),
                     )
                   ],
                 ),
