@@ -1,4 +1,5 @@
 import 'package:asset_mng/circle_widget.dart';
+import 'package:asset_mng/scraping_api.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -99,6 +100,9 @@ class _MainAssetsState extends State<MainAssets> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              ElevatedButton(onPressed: (){
+                ScrapingApi().getScraping();
+              }, child: Text('Functions')),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
                 child: getDropDownButton(thisMonth, Database().monthList, (newValue) {

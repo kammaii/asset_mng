@@ -1,0 +1,20 @@
+function newStock(name, price) {
+  return {
+    name: name+' stock',
+    price: price
+  }
+}
+
+var stock = newStock(name, price)
+
+
+
+class Stock {
+
+  String name;
+  int price;
+
+
+
+
+}
