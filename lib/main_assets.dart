@@ -85,6 +85,16 @@ class _MainAssetsState extends State<MainAssets> {
     isInitState = true;
   }
 
+  Future<bool> scrapeBatch(List<dynamic> stockCodes, int startIndex, int endIndex) async {
+    List<Future<bool>> results = [];
+    for(int i=startIndex; i<endIndex && i<stockCodes.length; i++) {
+      Future<bool> result = ScrapingApi().getScraping(stockCodes[i]);
+      results.add(result);
+    }
+    await Future.wait(results);
+    return Future.value(true);
+  }
+
   @override
   Widget build(BuildContext context) {
     return FutureBuilder(
@@ -100,8 +110,11 @@ class _MainAssetsState extends State<MainAssets> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ElevatedButton(onPressed: (){
-                ScrapingApi().getScraping();
+              ElevatedButton(onPressed: () async {
+                List<dynamic> stockCodes = await ScrapingApi().getStockCodes();
+                for(int i=0; i<stockCodes.length; i=i+10) {
+                  await scrapeBatch(stockCodes, i, i+10);
+                }
               }, child: Text('Functions')),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
