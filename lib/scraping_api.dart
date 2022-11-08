@@ -8,7 +8,7 @@ class ScrapingApi {
   Future<bool> getScraping(dynamic stockCode) async {
     print(basicUrl+'/scraping?stockCode=' + stockCode);
     try{
-      final response = await http.get(basicUrl+'/scraping?stockCode=' + stockCode);
+      final response = await http.get(Uri.parse(basicUrl+'/scraping?stockCode=' + stockCode));
       print('Response: ${response.body}');
 
     }catch(e){
@@ -18,7 +18,7 @@ class ScrapingApi {
   }
 
   Future<List<dynamic>> getStockCodes() async{
-    final response = await http.get(basicUrl+'/getStockCodes');
+    final response = await http.get(Uri.parse(basicUrl+'/getStockCodes'));
     print('getStockCodesResponse: $response');
     List<dynamic> stockCodes = jsonDecode(response.body);
     return stockCodes;

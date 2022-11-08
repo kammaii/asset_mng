@@ -6,7 +6,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import 'package:loading_indicator/loading_indicator.dart';
 import 'dart:math';
-import 'database.dart';
+import '../database.dart';
 
 class MainAssets extends StatefulWidget {
   const MainAssets({Key? key}) : super(key: key);
@@ -341,10 +341,10 @@ class _MainAssetsState extends State<MainAssets> {
     return FlTitlesData(
       bottomTitles: SideTitles(
         showTitles: true,
-        getTextStyles: (_) => TextStyle(
-          color: Colors.black,
-          fontSize: 15
-        ),
+        // getTextStyles: (_) => TextStyle(
+        //   color: Colors.black,
+        //   fontSize: 15
+        // ),
         getTitles: (value) {
           String month = monthListWithEx[value.toInt()];
           if(month.contains('.01')) {
@@ -356,10 +356,10 @@ class _MainAssetsState extends State<MainAssets> {
       ),
       leftTitles: SideTitles(
           showTitles: true,
-          getTextStyles: (_) => TextStyle(
-              color: Colors.black,
-              fontSize: 15
-          ),
+          // getTextStyles: (_) => TextStyle(
+          //     color: Colors.black,
+          //     fontSize: 15
+          // ),
           getTitles: (value) {
             if(value == 0) {
               return '';
